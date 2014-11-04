@@ -1,24 +1,24 @@
-# Introduction
+### Introduction
 
 Cache bundle is a OSGi bundle that provides caching mechanisms for pages, components or parts of code. Cache bundle uses it's two main components to perform those tasks: cache filter and cache tag.
 
-# Installation
+### Installation
 
 To install the bundle please download it's sources from SVN and compile using maven. You can use maven sling profile to automatically install the bundle. When sling profile is not used, cache bundle has to be installed manually through the OSGi console.
 
-# Cache filter
+### Cache filter
 
-## General description
+#### General description
 
 Cache filter is able to cache all pages/renderers/components. It is configured to filter all sling requests on the component level. The only limit is that the whole component is being cached - to cache only a part of a component please use the cache tag.
 
 It is strongly discouraged to enable cache filter on the author instance since this produces issues with CQ js code.
 
-## Configuration
+#### Configuration
 
 Cache filter is configured in two places: in the OSGi console and inside the application which components are being cached.
 
-### Cached application internal configuration
+##### Cached application internal configuration
 
 The application internal configuration is placed inside components/renderers `.content.xml` files. Filter configuration is stored inside a cache XML element placed inside the `jcr:root` root element. The cache element has the following XML attributes:
 
@@ -58,7 +58,7 @@ jcr:primaryType="nt:unstructured" />
 
 Please notice the obligatory cog namespace definition in the second line.
 
-### OSGi console
+#### OSGi console
 
 OSGi console allows to modify the following properties:
 
@@ -75,23 +75,24 @@ OSGi console allows to modify the following properties:
 
 For other properties see the [OSCache docs](http://svn.apache.org/repos/asf/db/ojb/trunk/src/config/oscache.properties).
 
-# Cache tag
-## General description
+### Cache tag
+#### General description
 
 The cache tag can be used to cache a part (or the whole) of a jsp page. The benefit of cache tag is that it can cache more than one component at once and it can be used inside conditional tags (e.g. `<c:if>`). The downside of cache tag is that cache tags can be defined and configured only by developers.
 
-## Configuration
+#### Configuration
 
 Cache tag uses the same cache as the component filter so it also uses filter's configuration.
 Cache tag has the following properties:
 
 | name | required | description | default value |
+| ++++ | ++++++++ | +++++++++++ | +++++++++++++ |
 | key | yes | prefix of the generated cache key | |
 | cacheLevel | no | cache level used to generate cache key, works the same as cacheLevel value stored inside .content.xml files | -1 |
 | invalidationSelf | no | should cache be invalidated if current page content is changed | true |
 | invalidationPaths | no | a semicolon separated list of paths that will be used to construct JCR event based refresh policy | empty list |
 
-# TODOs
+### TODOs
 
 Things/ideas left out for the future:
 * implement (if ever required) different caching strategies for different selectors
