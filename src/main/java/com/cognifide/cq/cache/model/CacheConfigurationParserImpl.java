@@ -17,7 +17,7 @@ import org.apache.commons.logging.LogFactory;
  */
 public class CacheConfigurationParserImpl implements CacheConfigurationParser {
 
-	private static final Log log = LogFactory.getLog(CacheConfigurationParserImpl.class);
+	private static final Log LOG = LogFactory.getLog(CacheConfigurationParserImpl.class);
 
 	private static final Pattern FULL_PATTERN = Pattern.compile("^[\\w/]+:\\d+:[-]{0,1}\\d+$");
 
@@ -48,7 +48,7 @@ public class CacheConfigurationParserImpl implements CacheConfigurationParser {
 				cacheLevel = Integer.parseInt(parts[2]);
 			} catch (NumberFormatException e) {
 				// fall through, leave default value
-				log.warn("invalid cache level for entry: " + entry);
+				LOG.warn("invalid cache level for entry: " + entry);
 			}
 		}
 
@@ -57,7 +57,7 @@ public class CacheConfigurationParserImpl implements CacheConfigurationParser {
 				time = Integer.parseInt(parts[1]);
 			} catch (NumberFormatException e) {
 				// fall through, leave default value
-				log.warn("invalid cache timeout for entry: " + entry);
+				LOG.warn("invalid cache timeout for entry: " + entry);
 			}
 		}
 

@@ -7,14 +7,14 @@ import java.util.Map;
 public class PathAliasStore {
 
 	private final Map<String, PathAlias> aliases = new HashMap<String, PathAlias>();
-	
-	private final static PathAliasStore instance = new PathAliasStore();
-	
+
+	private static final PathAliasStore INSTANCE = new PathAliasStore();
+
 	private PathAliasStore() {
 	}
-	
+
 	public static PathAliasStore getInstance() {
-		return instance;
+		return INSTANCE;
 	}
 
 	public boolean isAlias(String path) {
