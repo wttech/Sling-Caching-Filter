@@ -9,7 +9,7 @@ Add following dependency to your project:
     <dependency>
         <groupId>com.cognifide.cq</groupId>
         <artifactId>sling-caching-filter</artifactId>
-        <version>0.8.2</version>
+        <version>0.8.2-SNAPSHOT</version>
     </dependency>
 
 or download the sources and use the `maven-sling-plugin`:
