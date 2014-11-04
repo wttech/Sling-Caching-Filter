@@ -43,16 +43,16 @@ An example configuration of Showcase's header component (`.content.xml`) could l
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
 <jcr:root xmlns:cog="http://www.cognifide.com/cog/1.0" xmlns:cq="http://www.day.com/jcr/cq/1.0" xmlns:jcr="http://www.jcp.org/jcr/1.0"
-cq:isContainer="{Boolean}false"
-jcr:primaryType="cq:Component"
-jcr:title="Header"
-componentGroup="showcase">
-<cache
-cog:cacheEnabled="{Boolean}true"
-cog:cacheLevel="-1"
-cog:invalidateOnPaths="[/content/showcase(/.*)?]"
-cog:invalidateOnSelf="{Boolean}false"
-jcr:primaryType="nt:unstructured" />
+  cq:isContainer="{Boolean}false"
+  jcr:primaryType="cq:Component"
+  jcr:title="Header"
+  componentGroup="showcase">
+  <cache
+    cog:cacheEnabled="{Boolean}true"
+    cog:cacheLevel="-1"
+    cog:invalidateOnPaths="[/content/showcase(/.*)?]"
+    cog:invalidateOnSelf="{Boolean}false"
+    jcr:primaryType="nt:unstructured" />
 </jcr:root>
 ```
 
@@ -87,7 +87,7 @@ Cache tag uses the same cache as the component filter so it also uses filter's c
 Cache tag has the following properties:
 
 | name              | required | description | default value |
-| +++++++++++++++++ | ++++++++ | +++++++++++ | +++++++++++++ |
+| ----------------- | -------- | ----------- | ------------- |
 | key               | yes      | prefix of the generated cache key | - |
 | cacheLevel        | no       | cache level used to generate cache key, works the same as cacheLevel value stored inside .content.xml files | -1 |
 | invalidationSelf  | no       | should cache be invalidated if current page content is changed | true |
