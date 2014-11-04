@@ -46,7 +46,7 @@ Allowed values for the `cog:cacheLevel`:
 
 * -1 - Each instance is cached separately (resource path is used to create cache key).
 * 0 - There is only one instance of the component on the whole site. To determine which instance is cached, the first-renderer rule applies (the first rednered component is cached and used on other pages)
-* any positive value - Component is cached per path. The value of cache level determines how many parts of the request URI (separated by the "/" character) will be used to generate cache key. For example, when this value is set to 3 and the path is /content/virgo/en_gb/home.html, then only "/content/virgo/en_gb" will be used to generate the key meaning that component will be cached per language.
+* any positive value - Component is cached per path. The value of cache level determines how many parts of the request URI (separated by the "/" character) will be used to generate cache key. For example, when this value is set to 3 and the path is /content/acme/en_gb/home.html, then only "/content/acme/en_gb" will be used to generate the key meaning that component will be cached per language.
 
 An example configuration of Showcase's header component (`.content.xml`) could look like this:
 
