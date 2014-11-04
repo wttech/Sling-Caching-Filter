@@ -10,7 +10,7 @@ import javax.servlet.ServletOutputStream;
  */
 public class FilterServletOutputStream extends ServletOutputStream {
 
-	OutputStream outputStream;
+	private final OutputStream outputStream;
 
 	public FilterServletOutputStream(OutputStream outputStream) {
 		this.outputStream = outputStream;

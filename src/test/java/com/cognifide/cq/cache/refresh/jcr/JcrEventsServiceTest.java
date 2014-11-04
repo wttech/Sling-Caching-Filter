@@ -1,7 +1,7 @@
 package com.cognifide.cq.cache.refresh.jcr;
 
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
@@ -146,8 +146,8 @@ public class JcrEventsServiceTest {
 		expect(repository.loginAdministrative(null)).andReturn(session);
 		expect(session.getWorkspace()).andReturn(workspace);
 		expect(workspace.getObservationManager()).andReturn(observationManager);
-		observationManager.addEventListener(service, org.apache.jackrabbit.spi.Event.ALL_TYPES, "/", true,
-				null, null, false);
+		observationManager
+				.addEventListener(service, JcrEventsService.ALL_TYPES, "/", true, null, null, false);
 
 		replay(repository, session, workspace, observationManager);
 		ReflectionHelper.invoke(JcrEventsService.class, "activate",

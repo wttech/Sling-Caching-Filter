@@ -18,6 +18,9 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.felix.scr.annotations.Property;
+import org.apache.felix.scr.annotations.sling.SlingFilter;
+import org.apache.felix.scr.annotations.sling.SlingFilterScope;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.commons.osgi.OsgiUtil;
@@ -49,100 +52,86 @@ import com.opensymphony.oscache.web.filter.ICacheKeyProvider;
  * @author Przemyslaw Pakulski
  * @author Jakub Malecki
  * @author Maciej Majchrzak
- * 
- * @scr.component immediate="true" label="Sling Caching Filter" description="Sling Caching Filter"
- * @scr.property name="filter.scope" value="component" private="true"
- * @scr.property name="filter.order" value="100" type="Integer" private="true"
- * 
- * @scr.property label="Enabled" nameRef="PROPERTY_FILTER_ENABLED" valueRef="DEFAULT_FILTER_ENABLED"
- * @scr.property label="Resource types" nameRef="PROPERTY_FILTER_RESOURCE_TYPES"
- * valueRef="DEFAULT_FILTER_RESOURCE_TYPES"
- * 
- * @scr.property label="Path aliases" nameRef="PROPERTY_PATH_ALIASES" valueRef="DEFAULT_PATH_ALIASES"
- * cardinality="Integer.MAX_INT"
- * 
- * @scr.property label="Capacity" nameRef="PROPERTY_CAPACITY" valueRef="DEFAULT_CAPACITY" type="Integer"
- * @scr.property label="Memory" nameRef="PROPERTY_MEMORY" valueRef="DEFAULT_MEMORY" type="Boolean"
- * @scr.property label="Algorithm" nameRef="PROPERTY_ALGORITHM" valueRef="DEFAULT_ALGORITHM"
- * @scr.property label="Blocking" nameRef="PROPERTY_BLOCKING" valueRef="DEFAULT_BLOCKING" type="Boolean"
- * @scr.property label="Unlimited disk" nameRef="PROPERTY_UNLIMITED_DISK" valueRef="DEFAULT_UNLIMITED_DISK"
- * type="Boolean"
- * @scr.property label="Persistence class" nameRef="PROPERTY_PERSISTENCE_CLASS"
- * valueRef="DEFAULT_PERSISTENCE_CLASS"
- * @scr.property label="Path" nameRef="PROPERTY_PATH" valueRef="DEFAULT_PATH"
- * @scr.property label="Persistence overflow only" nameRef="PROPERTY_PERSISTENCE_OVERFLOW_ONLY"
- * valueRef="DEFAULT_PERSISTENCE_OVERFLOW_ONLY" type="Boolean"
- * @scr.property label="Event listeners" nameRef="PROPERTY_EVENT_LISTENERS" valueRef="DEFAULT_EVENT_LISTENERS"
- * @scr.property label="Key" nameRef="PROPERTY_KEY" valueRef="DEFAULT_KEY"
- * @scr.property label="Use host domain in key" nameRef="PROPERTY_USE_HOST_DOMAIN_IN_KEY"
- * valueRef="DEFAULT_USE_HOST_DOMAIN_IN_KEY" type="Boolean"
- * @scr.property label="Duration" nameRef="PROPERTY_DURATION" valueRef="DEFAULT_DURATION" type="Integer" *
- * @scr.service
  */
+@SlingFilter(label = "Sling Caching Filter", description = "Sling Caching Filter", scope = SlingFilterScope.COMPONENT, order = 100, metatype = true)
 public class ComponentCacheFilter implements Filter, ICacheKeyProvider, ICacheGroupsProvider {
 
-	// Cache config properties
+	private static final boolean DEFAULT_FILTER_ENABLED = false;
 
+	@Property(label = "Enabled", boolValue = DEFAULT_FILTER_ENABLED)
 	private static final String PROPERTY_FILTER_ENABLED = "cache.config.enabled";
-
-	private static final Boolean DEFAULT_FILTER_ENABLED = Boolean.FALSE;
-
-	private static final String PROPERTY_FILTER_RESOURCE_TYPES = "cache.config.resource-types";
 
 	private static final String[] DEFAULT_FILTER_RESOURCE_TYPES = new String[] {
 			"foundation/components/logo", "geometrixx/components/header" };
 
-	private static final String PROPERTY_MEMORY = "cache.config.memory";
+	@Property(label = "Resource types", value = { "foundation/components/logo",
+			"geometrixx/components/header" })
+	private static final String PROPERTY_FILTER_RESOURCE_TYPES = "cache.config.resource-types";
+
+	private static final String[] DEFAULT_PATH_ALIASES = new String[] { "", "" };
+
+	@Property(label = "Path aliases", value = { "", "" }, cardinality = Integer.MAX_VALUE)
+	private static final String PROPERTY_PATH_ALIASES = "cache.config.pathaliases";
 
 	private static final boolean DEFAULT_MEMORY = true;
 
-	private static final String PROPERTY_CAPACITY = "cache.config.capacity";
+	@Property(label = "Memory", boolValue = DEFAULT_MEMORY)
+	private static final String PROPERTY_MEMORY = "cache.config.memory";
 
 	private static final int DEFAULT_CAPACITY = 1000;
 
-	private static final String PROPERTY_ALGORITHM = "cache.config.algorithm";
+	@Property(label = "Capacity", intValue = DEFAULT_CAPACITY)
+	private static final String PROPERTY_CAPACITY = "cache.config.capacity";
 
 	private static final String DEFAULT_ALGORITHM = "com.cognifide.cq.cache.algorithm.LRUCache";
 
-	private static final String PROPERTY_BLOCKING = "cache.config.blocking";
+	@Property(label = "Algorithm", value = DEFAULT_ALGORITHM)
+	private static final String PROPERTY_ALGORITHM = "cache.config.algorithm";
 
 	private static final boolean DEFAULT_BLOCKING = false;
 
-	private static final String PROPERTY_UNLIMITED_DISK = "cache.config.unlimiteddisk";
+	@Property(label = "Blocking", boolValue = DEFAULT_BLOCKING)
+	private static final String PROPERTY_BLOCKING = "cache.config.blocking";
 
 	private static final boolean DEFAULT_UNLIMITED_DISK = false;
 
-	private static final String PROPERTY_PERSISTENCE_CLASS = "cache.config.persistenceclass";
+	@Property(label = "Unlimited disk", boolValue = DEFAULT_UNLIMITED_DISK)
+	private static final String PROPERTY_UNLIMITED_DISK = "cache.config.unlimiteddisk";
 
 	private static final String DEFAULT_PERSISTENCE_CLASS = "com.opensymphony.oscache.plugins.diskpersistence.HashDiskPersistenceListener";
 
-	private static final String PROPERTY_PATH = "cache.config.path";
+	@Property(label = "Persistance class", value = DEFAULT_PERSISTENCE_CLASS)
+	private static final String PROPERTY_PERSISTENCE_CLASS = "cache.config.persistenceclass";
 
 	private static final String DEFAULT_PATH = "";
 
-	private static final String PROPERTY_PERSISTENCE_OVERFLOW_ONLY = "cache.config.persistenceoverflowonly";
+	@Property(label = "Path", value = DEFAULT_PATH)
+	private static final String PROPERTY_PATH = "cache.config.path";
 
 	private static final boolean DEFAULT_PERSISTENCE_OVERFLOW_ONLY = true;
 
-	private static final String PROPERTY_EVENT_LISTENERS = "cache.config.eventlisteners";
+	@Property(label = "Persistance overflow only", boolValue = DEFAULT_PERSISTENCE_OVERFLOW_ONLY)
+	private static final String PROPERTY_PERSISTENCE_OVERFLOW_ONLY = "cache.config.persistenceoverflowonly";
 
 	private static final String DEFAULT_EVENT_LISTENERS = "";
 
-	private static final String PROPERTY_KEY = "cache.config.key";
+	@Property(label = "Event listeners", value = DEFAULT_EVENT_LISTENERS)
+	private static final String PROPERTY_EVENT_LISTENERS = "cache.config.eventlisteners";
 
 	private static final String DEFAULT_KEY = "__oscache_cache";
 
-	private static final String PROPERTY_USE_HOST_DOMAIN_IN_KEY = "cache.config.usehostdomaininkey";
+	@Property(label = "Key", value = DEFAULT_KEY)
+	private static final String PROPERTY_KEY = "cache.config.key";
 
 	private static final boolean DEFAULT_USE_HOST_DOMAIN_IN_KEY = false;
 
-	private static final String PROPERTY_DURATION = "cache.config.duration";
+	@Property(label = "Use host domain in key", boolValue = DEFAULT_USE_HOST_DOMAIN_IN_KEY)
+	private static final String PROPERTY_USE_HOST_DOMAIN_IN_KEY = "cache.config.usehostdomaininkey";
 
 	private static final int DEFAULT_DURATION = 3600;
 
-	private static final String PROPERTY_PATH_ALIASES = "cache.config.pathaliases";
-
-	private static final String[] DEFAULT_PATH_ALIASES = new String[] { "", "" };
+	@Property(label = "Duration", intValue = DEFAULT_DURATION)
+	private static final String PROPERTY_DURATION = "cache.config.duration";
 
 	// Cache config keys
 

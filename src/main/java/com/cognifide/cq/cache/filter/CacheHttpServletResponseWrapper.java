@@ -16,9 +16,9 @@ public class CacheHttpServletResponseWrapper extends HttpServletResponseWrapper 
 
 	private static final int BUFFER_SIZE = 1024;
 
-	private ByteArrayOutputStream baos;
+	private final ByteArrayOutputStream baos;
 
-	private ServletOutputStream outstr;
+	private final ServletOutputStream outstr;
 
 	private PrintWriter writer;
 

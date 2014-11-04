@@ -1,6 +1,7 @@
 package com.cognifide.cq.cache.test.utils;
 
 import java.util.HashMap;
+import java.util.Iterator;
 
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceMetadata;
@@ -87,5 +88,30 @@ public class ResourceStub extends HashMap<String, Object> implements Resource, V
 			}
 		}
 		return defaultValue;
+	}
+
+	@Override
+	public Resource getChild(String arg0) {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public String getName() {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public Resource getParent() {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public boolean isResourceType(String arg0) {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public Iterator<Resource> listChildren() {
+		throw new UnsupportedOperationException();
 	}
 }

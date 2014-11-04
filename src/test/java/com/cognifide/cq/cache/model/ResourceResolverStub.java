@@ -6,6 +6,7 @@ import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.apache.sling.api.resource.LoginException;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
 
@@ -83,6 +84,36 @@ public class ResourceResolverStub implements ResourceResolver {
 
 	@Override
 	public <AdapterType> AdapterType adaptTo(Class<AdapterType> type) {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public ResourceResolver clone(Map<String, Object> arg0) throws LoginException {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public void close() {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public Object getAttribute(String arg0) {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public Iterator<String> getAttributeNames() {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public String getUserID() {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public boolean isLive() {
 		throw new UnsupportedOperationException();
 	}
 

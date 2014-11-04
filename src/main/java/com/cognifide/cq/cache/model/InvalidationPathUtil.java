@@ -8,14 +8,14 @@ import org.apache.commons.lang.StringUtils;
 
 public class InvalidationPathUtil {
 
-	private static PathAliasStore pathAliasStore = PathAliasStore.getInstance();
+	private static final PathAliasStore PATH_ALIAS_STORE = PathAliasStore.getInstance();
 
 	public static List<String> getInvalidationPaths(String[] paths) {
 		List<String> result = new ArrayList<String>();
 		for (String path : paths) {
 			if (StringUtils.isNotBlank(path)) {
-				if (pathAliasStore.isAlias(path)) {
-					Collection<String> pathsForAlias = pathAliasStore.getPathsForAlias(path);
+				if (PATH_ALIAS_STORE.isAlias(path)) {
+					Collection<String> pathsForAlias = PATH_ALIAS_STORE.getPathsForAlias(path);
 					for (String realPath : pathsForAlias) {
 						result.add(realPath);
 					}
