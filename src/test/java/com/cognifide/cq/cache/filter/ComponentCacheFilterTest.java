@@ -1,5 +1,6 @@
 package com.cognifide.cq.cache.filter;
 
+import com.cognifide.cq.cache.definition.ResourceTypeCacheDefinition;
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.assertNotNull;
@@ -172,7 +173,7 @@ public class ComponentCacheFilterTest {
 		resource.setPath("/content/resource/path");
 		resource.setResourceType("/apps/resource/type");
 
-		componentContext.put("cache.config.resource-types", "/apps/resource/type");
+		mockResourceTypeCacheDefinition("/apps/resource/type");
 
 		initFilter();
 		activateFilter(true, 10);
@@ -205,7 +206,7 @@ public class ComponentCacheFilterTest {
 		resource.setPath("/content/resource/path");
 		resource.setResourceType("/apps/resource/type");
 
-		componentContext.put("cache.config.resource-types", "/apps/resource/type");
+		mockResourceTypeCacheDefinition("/apps/resource/type");
 
 		initFilter();
 		activateFilter(true, 10);
@@ -229,7 +230,7 @@ public class ComponentCacheFilterTest {
 			}
 		};
 
-		cache.putInCache((String) notNull(), (Object) notNull(), (EntryRefreshPolicy) notNull());
+		cache.putInCache((String) notNull(), notNull(), (EntryRefreshPolicy) notNull());
 		cache.addCacheEventListener((CacheEventListener) notNull());
 
 		PrintWriter writer = createMock(PrintWriter.class);
@@ -242,6 +243,19 @@ public class ComponentCacheFilterTest {
 		replay(filterChainMock, response, cacheAdministratorMock, cache, writer);
 		filter.doFilter(slingHttpServletRequest, response, filterChainStub);
 		verify(filterChainMock, response, cacheAdministratorMock, cache, writer);
+	}
+
+	private void mockResourceTypeCacheDefinition(String resourceType) {
+		ResourceTypeCacheDefinition resourceTypeCacheDefinitionMock = createMock(ResourceTypeCacheDefinition.class);
+		expect(resourceTypeCacheDefinitionMock.getResourceType()).andReturn(resourceType).atLeastOnce();
+		expect(resourceTypeCacheDefinitionMock.getValidityTimeInSeconds()).andReturn(0);
+		expect(resourceTypeCacheDefinitionMock.getCacheLevel()).andReturn(-1);
+		expect(resourceTypeCacheDefinitionMock.isEnabled()).andReturn(true);
+		expect(resourceTypeCacheDefinitionMock.isInvalidateOnSelf()).andReturn(true);
+		expect(resourceTypeCacheDefinitionMock.getInvalidateOnReferencedFields()).andReturn(new String[0]);
+		expect(resourceTypeCacheDefinitionMock.getInvalidateOnPaths()).andReturn(new String[0]);
+		replay(resourceTypeCacheDefinitionMock);
+		filter.bindResourceTypeCacheDefinition(resourceTypeCacheDefinitionMock);
 	}
 
 	@Test

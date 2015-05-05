@@ -2,7 +2,6 @@ package com.cognifide.cq.cache.filter;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
@@ -27,16 +26,13 @@ import org.apache.sling.commons.osgi.OsgiUtil;
 import org.osgi.service.component.ComponentContext;
 
 import com.cognifide.cq.cache.algorithm.SilentRemovalNotificator;
-import com.cognifide.cq.cache.model.CacheConfigurationEntry;
-import com.cognifide.cq.cache.model.CacheConfigurationParser;
-import com.cognifide.cq.cache.model.CacheConfigurationParserImpl;
 import com.cognifide.cq.cache.model.CacheKeyGenerator;
 import com.cognifide.cq.cache.model.CacheKeyGeneratorImpl;
 import com.cognifide.cq.cache.model.PathAlias;
 import com.cognifide.cq.cache.model.PathAliasReader;
 import com.cognifide.cq.cache.model.PathAliasStore;
 import com.cognifide.cq.cache.model.ResourceTypeCacheConfiguration;
-import com.cognifide.cq.cache.model.ResourceTypeCacheConfigurationReader;
+import com.cognifide.cq.cache.model.reader.ResourceTypeCacheConfigurationReader;
 import com.cognifide.cq.cache.refresh.jcr.FilterJcrRefreshPolicy;
 import com.cognifide.cq.cache.refresh.jcr.JcrEventsService;
 import com.opensymphony.oscache.base.AbstractCacheAdministrator;
@@ -45,10 +41,11 @@ import com.opensymphony.oscache.base.NeedsRefreshException;
 import com.opensymphony.oscache.web.ServletCacheAdministrator;
 import com.opensymphony.oscache.web.filter.ICacheGroupsProvider;
 import com.opensymphony.oscache.web.filter.ICacheKeyProvider;
+import org.apache.felix.scr.annotations.Reference;
 
 /**
  * Sling Caching Filter
- * 
+ *
  * @author Przemyslaw Pakulski
  * @author Jakub Malecki
  * @author Maciej Majchrzak
@@ -56,21 +53,16 @@ import com.opensymphony.oscache.web.filter.ICacheKeyProvider;
 @SlingFilter(label = "Sling Caching Filter", description = "Sling Caching Filter", scope = SlingFilterScope.COMPONENT, order = 100, metatype = true)
 public class ComponentCacheFilter implements Filter, ICacheKeyProvider, ICacheGroupsProvider {
 
+	private static final Log log = LogFactory.getLog(ComponentCacheFilter.class);
+
 	private static final boolean DEFAULT_FILTER_ENABLED = false;
 
 	@Property(label = "Enabled", boolValue = DEFAULT_FILTER_ENABLED)
 	private static final String PROPERTY_FILTER_ENABLED = "cache.config.enabled";
 
-	private static final String[] DEFAULT_FILTER_RESOURCE_TYPES = new String[] {
-			"foundation/components/logo", "geometrixx/components/header" };
+	private static final String[] DEFAULT_PATH_ALIASES = new String[]{"", ""};
 
-	@Property(label = "Resource types", value = { "foundation/components/logo",
-			"geometrixx/components/header" })
-	private static final String PROPERTY_FILTER_RESOURCE_TYPES = "cache.config.resource-types";
-
-	private static final String[] DEFAULT_PATH_ALIASES = new String[] { "", "" };
-
-	@Property(label = "Path aliases", value = { "", "" }, cardinality = Integer.MAX_VALUE)
+	@Property(label = "Path aliases", value = {"", ""}, cardinality = Integer.MAX_VALUE)
 	private static final String PROPERTY_PATH_ALIASES = "cache.config.pathaliases";
 
 	private static final boolean DEFAULT_MEMORY = true;
@@ -134,7 +126,6 @@ public class ComponentCacheFilter implements Filter, ICacheKeyProvider, ICacheGr
 	private static final String PROPERTY_DURATION = "cache.config.duration";
 
 	// Cache config keys
-
 	private static final String CACHE_PATH_KEY = "cache.path";
 
 	private static final String CACHE_USE_HOST_DOMAIN_KEY = "cache.use.host.domain.in.key";
@@ -147,11 +138,11 @@ public class ComponentCacheFilter implements Filter, ICacheKeyProvider, ICacheGr
 	public static final String SERVLET_CONTEXT_CACHE_DURATION = ComponentCacheFilter.class.getName()
 			+ ".cache.duration";
 
+	@Reference
+	private ResourceTypeCacheConfigurationReader configurationReader;
+
 	// Properties read from configuration
-
 	private boolean enabled;
-
-	private Map<String, CacheConfigurationEntry> cacheConfigurationEntries;
 
 	private boolean memory;
 
@@ -177,21 +168,15 @@ public class ComponentCacheFilter implements Filter, ICacheKeyProvider, ICacheGr
 
 	private int duration;
 
-	private final static Log log = LogFactory.getLog(ComponentCacheFilter.class);
-
 	private ServletContext servletContext;
 
 	private ServletCacheAdministrator admin;
-
-	private CacheConfigurationParser parser;
 
 	private PathAliasReader pathAliasReader;
 
 	private CacheKeyGenerator generator;
 
 	private Properties configProperties;
-
-	private final ResourceTypeCacheConfigurationReader configurationReader = new ResourceTypeCacheConfigurationReader();
 
 	@Override
 	public void init(FilterConfig filterConfig) {
@@ -217,13 +202,12 @@ public class ComponentCacheFilter implements Filter, ICacheKeyProvider, ICacheGr
 
 	/**
 	 * Handle OSGi activation
-	 * 
+	 *
 	 * @param context osgi component context
 	 */
 	protected void activate(ComponentContext context) {
 		log.info("activate " + getClass());
 
-		parser = new CacheConfigurationParserImpl();
 		pathAliasReader = new PathAliasReader();
 		generator = new CacheKeyGeneratorImpl();
 
@@ -245,7 +229,7 @@ public class ComponentCacheFilter implements Filter, ICacheKeyProvider, ICacheGr
 
 	/**
 	 * Handle OSGi deactivation
-	 * 
+	 *
 	 * @param context osgi component context
 	 */
 	protected void deactivate(ComponentContext context) {
@@ -256,15 +240,10 @@ public class ComponentCacheFilter implements Filter, ICacheKeyProvider, ICacheGr
 
 	/**
 	 * Read OSGi component configuration
-	 * 
+	 *
 	 * @param context osgi component context
 	 */
 	protected void readConfiguration(ComponentContext context) {
-		String[] resourceTypes = OsgiUtil
-				.toStringArray(readProperty(context, PROPERTY_FILTER_RESOURCE_TYPES));
-		if (resourceTypes == null) {
-			resourceTypes = DEFAULT_FILTER_RESOURCE_TYPES;
-		}
 		String[] aliasesStrings = OsgiUtil.toStringArray(readProperty(context, PROPERTY_PATH_ALIASES));
 		if (aliasesStrings == null) {
 			aliasesStrings = DEFAULT_PATH_ALIASES;
@@ -287,8 +266,6 @@ public class ComponentCacheFilter implements Filter, ICacheKeyProvider, ICacheGr
 		useHostDomainInKey = OsgiUtil.toBoolean(readProperty(context, PROPERTY_USE_HOST_DOMAIN_IN_KEY),
 				DEFAULT_USE_HOST_DOMAIN_IN_KEY);
 		duration = OsgiUtil.toInteger(readProperty(context, PROPERTY_DURATION), DEFAULT_DURATION);
-
-		cacheConfigurationEntries = parser.parseEntries(resourceTypes);
 
 		Set<PathAlias> aliases = pathAliasReader.readAliases(aliasesStrings);
 		PathAliasStore pathAliasStore = PathAliasStore.getInstance();
@@ -320,17 +297,16 @@ public class ComponentCacheFilter implements Filter, ICacheKeyProvider, ICacheGr
 		if (enabled) {
 			if (request instanceof SlingHttpServletRequest) {
 				SlingHttpServletRequest slingHttpServletRequest = (SlingHttpServletRequest) request;
-				Resource resource = slingHttpServletRequest.getResource();
-
-				String resourceType = resource.getResourceType();
 
 				ResourceTypeCacheConfiguration cacheConfiguration = configurationReader
-						.readComponentConfiguration(slingHttpServletRequest, cacheConfigurationEntries,
-								duration);
+						.readComponentConfiguration(slingHttpServletRequest, duration);
 
 				if (cacheConfiguration.isEnabled()) {
-					log.info("filtering path=[{" + resource.getPath() + "}],resourceType=[{" + resourceType
-							+ "}],shouldFilter=[{" + cacheConfiguration.isEnabled() + "}]");
+					Resource resource = slingHttpServletRequest.getResource();
+					if (log.isInfoEnabled()) {
+						log.info("filtering path=[{" + resource.getPath() + "}],resourceType=[{" + resource.getResourceType()
+								+ "}],shouldFilter=[{" + cacheConfiguration.isEnabled() + "}]");
+					}
 
 					byte[] result = getResult(slingHttpServletRequest, response, chain, cacheConfiguration);
 					response.getWriter().write(new String(result, response.getCharacterEncoding()));
@@ -338,11 +314,15 @@ public class ComponentCacheFilter implements Filter, ICacheKeyProvider, ICacheGr
 					chain.doFilter(request, response);
 				}
 			} else {
-				log.info("NOT A SLING REQUEST");
+				if (log.isInfoEnabled()) {
+					log.info("NOT A SLING REQUEST");
+				}
 				chain.doFilter(request, response);
 			}
 		} else {
-			log.debug("DISABLED");
+			if (log.isDebugEnabled()) {
+				log.debug("DISABLED");
+			}
 			chain.doFilter(request, response);
 		}
 	}
@@ -352,20 +332,20 @@ public class ComponentCacheFilter implements Filter, ICacheKeyProvider, ICacheGr
 			IOException {
 
 		Cache cache = this.admin.getAppScopeCache(servletContext);
-		String key = generator.generateKey(cacheConfiguration.getCacheLevel(), httpRequest.getResource(),
+		String generatedKey = generator.generateKey(cacheConfiguration.getCacheLevel(), httpRequest.getResource(),
 				httpRequest.getRequestPathInfo().getSelectorString());
 
 		ByteArrayOutputStream result = null;
 
 		try {
-			result = (ByteArrayOutputStream) cache.getFromCache(key);
+			result = (ByteArrayOutputStream) cache.getFromCache(generatedKey);
 
 			if (log.isInfoEnabled()) {
-				log.info("<cache>: Using cached entry for " + key);
+				log.info("<cache>: Using cached entry for " + generatedKey);
 			}
 		} catch (NeedsRefreshException nre) {
 			if (log.isInfoEnabled()) {
-				log.info("<cache>: New cache entry, cache stale or cache scope flushed for " + key);
+				log.info("<cache>: New cache entry, cache stale or cache scope flushed for " + generatedKey);
 			}
 
 			CacheHttpServletResponseWrapper cacheResponse = new CacheHttpServletResponseWrapper(
@@ -374,9 +354,9 @@ public class ComponentCacheFilter implements Filter, ICacheKeyProvider, ICacheGr
 			cacheResponse.getWriter().flush();
 			result = cacheResponse.getContent();
 
-			FilterJcrRefreshPolicy refreshPolicy = new FilterJcrRefreshPolicy(key, cacheConfiguration);
+			FilterJcrRefreshPolicy refreshPolicy = new FilterJcrRefreshPolicy(generatedKey, cacheConfiguration);
 			try {
-				cache.putInCache(key, result, refreshPolicy);
+				cache.putInCache(generatedKey, result, refreshPolicy);
 			} finally {
 				// finally block used to make sure that all data binded to the current thread is cleared
 				SilentRemovalNotificator.notifyListeners(cache);
