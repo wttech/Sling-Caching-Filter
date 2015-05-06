@@ -1,23 +1,20 @@
 package com.cognifide.cq.cache.model.reader;
 
-import com.cognifide.cq.cache.model.CacheConstants;
+import com.cognifide.cq.cache.definition.osgi.OsgiResourceTypeCacheDefinition;
 import com.cognifide.cq.cache.model.ResourceResolverStub;
 import com.cognifide.cq.cache.model.ResourceTypeCacheConfiguration;
+import com.cognifide.cq.cache.test.utils.ComponentContextStub;
+import com.cognifide.cq.cache.test.utils.ResourceStub;
+import com.cognifide.cq.cache.test.utils.SlingHttpServletRequestStub;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.regex.Pattern;
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.assertNotNull;
 import static junit.framework.Assert.assertTrue;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.regex.Pattern;
-
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import com.cognifide.cq.cache.test.utils.ResourceStub;
-import com.cognifide.cq.cache.test.utils.SlingHttpServletRequestStub;
 
 /**
  * @author Bartosz Rudnicki
@@ -58,8 +55,6 @@ public class ResourceTypeCacheConfigurationReaderTest {
 
 	private static final String RESOURCE_TYPE_PATH = "/apps/resourceType";
 
-	private static final String CACHE_RESOURCE_PATH = RESOURCE_TYPE + "/cache";
-
 	private static final String INVALIDATION_PATH = "%s.*";
 
 	private ResourceTypeCacheConfigurationReaderImpl reader;
@@ -71,8 +66,6 @@ public class ResourceTypeCacheConfigurationReaderTest {
 	private ResourceStub requestedResource;
 
 	private ResourceStub typeResource;
-
-	private ResourceStub cacheResource;
 
 	@Before
 	public void setUp() {
@@ -87,33 +80,19 @@ public class ResourceTypeCacheConfigurationReaderTest {
 		typeResource = new ResourceStub();
 		typeResource.setPath(RESOURCE_TYPE);
 
-		cacheResource = new ResourceStub();
-		cacheResource.setPath(CACHE_RESOURCE_PATH);
-
 		resourceResolver = new ResourceResolverStub();
 		resourceResolver.getResources().put(RESOURCE_PATH, requestedResource);
 		resourceResolver.getResources().put(RESOURCE_TYPE_PATH, typeResource);
-		resourceResolver.getResources().put(CACHE_RESOURCE_PATH, cacheResource);
 
 		request = new SlingHttpServletRequestStub();
 		request.setResource(requestedResource);
 		request.setResourceResolver(resourceResolver);
 	}
 
-	@After
-	public void tearDown() {
-
-	}
-
 	@SuppressWarnings("unchecked")
 	@Test
 	public void testComponentLoadedFromCacheWithAllFieldsSet() {
-		cacheResource.put(CacheConstants.CACHE_ENABLED, true);
-		cacheResource.put(CacheConstants.CACHE_VALIDITY_TIME, XML_TIME);
-		cacheResource.put(CacheConstants.CACHE_LEVEL, XML_CACHE_LEVEL);
-		cacheResource.put(CacheConstants.CACHE_INVALIDATE_ON_SELF, XML_INVALIDATE_ON_SELF);
-		cacheResource.put(CacheConstants.CACHE_INVALIDATE_FIELDS, XML_CACHE_INVALIDATE_FIELDS);
-		cacheResource.put(CacheConstants.CACHE_INVALIDATE_PATHS, XML_CACHE_INVALIDATE_PATHS);
+		setUpResourceTypeDefinition();
 
 		ResourceTypeCacheConfiguration config = reader.readComponentConfiguration(request, DEFAULT_TIME);
 
@@ -135,10 +114,24 @@ public class ResourceTypeCacheConfigurationReaderTest {
 		assertTrue(regexes.contains(INVALIDATE_PATH_2));
 	}
 
+	private void setUpResourceTypeDefinition() {
+		OsgiResourceTypeCacheDefinition osgiResourceTypeCacheDefinition = new OsgiResourceTypeCacheDefinition();
+		ComponentContextStub componentContext = new ComponentContextStub();
+		componentContext.put("cache.config.active", true);
+		componentContext.put("cache.config.resource.type", RESOURCE_TYPE);
+		componentContext.put("cache.config.validity.time", XML_TIME);
+		componentContext.put("cache.config.cache.level", XML_CACHE_LEVEL);
+		componentContext.put("cache.config.invalidate.on.self", XML_INVALIDATE_ON_SELF);
+		componentContext.put("cache.config.invalidate.on.referenced.fields", XML_CACHE_INVALIDATE_FIELDS);
+		componentContext.put("cache.config.invalidate.on.paths", XML_CACHE_INVALIDATE_PATHS);
+		osgiResourceTypeCacheDefinition.activate(componentContext);
+		reader.bindResourceTypeCacheDefinition(osgiResourceTypeCacheDefinition);
+	}
+
 	@SuppressWarnings("unchecked")
 	@Test
 	public void testComponentLoadedFromCacheWithNoFieldsSet() {
-		cacheResource.put(CacheConstants.CACHE_ENABLED, false);
+		setUpDisabledResourceTypeDefinition();
 
 		ResourceTypeCacheConfiguration config = reader.readComponentConfiguration(request, DEFAULT_TIME);
 
@@ -155,18 +148,21 @@ public class ResourceTypeCacheConfigurationReaderTest {
 				String.format(INVALIDATION_PATH, RESOURCE_PATH));
 	}
 
+	private void setUpDisabledResourceTypeDefinition() {
+		OsgiResourceTypeCacheDefinition osgiResourceTypeCacheDefinition = new OsgiResourceTypeCacheDefinition();
+		ComponentContextStub componentContext = new ComponentContextStub();
+		componentContext.put("cache.config.active", false);
+		componentContext.put("cache.config.resource.type", RESOURCE_PATH);
+		osgiResourceTypeCacheDefinition.activate(componentContext);
+		reader.bindResourceTypeCacheDefinition(osgiResourceTypeCacheDefinition);
+	}
+
 	@SuppressWarnings("unchecked")
 	@Test
 	public void testComponentLoadedFromCacheWithAllFieldsSetAndOnAbsolutePaths() {
 		requestedResource.setResourceType(RESOURCE_TYPE_PATH);
 
-		cacheResource.put(CacheConstants.CACHE_ENABLED, true);
-		cacheResource.put(CacheConstants.CACHE_VALIDITY_TIME, XML_TIME);
-		cacheResource.put(CacheConstants.CACHE_LEVEL, XML_CACHE_LEVEL);
-		cacheResource.put(CacheConstants.CACHE_INVALIDATE_ON_SELF, XML_INVALIDATE_ON_SELF);
-		cacheResource.put(CacheConstants.CACHE_INVALIDATE_FIELDS, new Object[]{FIELD_1_NAME, FIELD_2_NAME,
-			null});
-		cacheResource.put(CacheConstants.CACHE_INVALIDATE_PATHS, INVALIDATE_PATH_1);
+		setUpResourceTypeDefinitionWithAdditionalInvalidateOptions();
 
 		ResourceTypeCacheConfiguration config = reader.readComponentConfiguration(request, DEFAULT_TIME);
 
@@ -187,18 +183,17 @@ public class ResourceTypeCacheConfigurationReaderTest {
 		assertTrue(regexes.contains(INVALIDATE_PATH_1));
 	}
 
-	@SuppressWarnings("unchecked")
-	@Test(expected = IllegalArgumentException.class)
-	public void testComponentLoadedFromCacheWithIncorrectInvalidateFieldsSet() {
-		requestedResource.setResourceType(RESOURCE_TYPE_PATH);
-
-		cacheResource.put(CacheConstants.CACHE_ENABLED, true);
-		cacheResource.put(CacheConstants.CACHE_VALIDITY_TIME, XML_TIME);
-		cacheResource.put(CacheConstants.CACHE_LEVEL, XML_CACHE_LEVEL);
-		cacheResource.put(CacheConstants.CACHE_INVALIDATE_ON_SELF, XML_INVALIDATE_ON_SELF);
-		cacheResource.put(CacheConstants.CACHE_INVALIDATE_FIELDS, this);
-		cacheResource.put(CacheConstants.CACHE_INVALIDATE_PATHS, INVALIDATE_PATH_1);
-
-		reader.readComponentConfiguration(request, DEFAULT_TIME);
+	private void setUpResourceTypeDefinitionWithAdditionalInvalidateOptions() {
+		OsgiResourceTypeCacheDefinition osgiResourceTypeCacheDefinition = new OsgiResourceTypeCacheDefinition();
+		ComponentContextStub componentContext = new ComponentContextStub();
+		componentContext.put("cache.config.active", true);
+		componentContext.put("cache.config.resource.type", RESOURCE_TYPE_PATH);
+		componentContext.put("cache.config.validity.time", XML_TIME);
+		componentContext.put("cache.config.cache.level", XML_CACHE_LEVEL);
+		componentContext.put("cache.config.invalidate.on.self", XML_INVALIDATE_ON_SELF);
+		componentContext.put("cache.config.invalidate.on.referenced.fields", new String[]{FIELD_1_NAME, FIELD_2_NAME, null});
+		componentContext.put("cache.config.invalidate.on.paths", new String[]{INVALIDATE_PATH_1});
+		osgiResourceTypeCacheDefinition.activate(componentContext);
+		reader.bindResourceTypeCacheDefinition(osgiResourceTypeCacheDefinition);
 	}
 }

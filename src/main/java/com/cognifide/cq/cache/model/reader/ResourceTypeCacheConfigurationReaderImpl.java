@@ -1,8 +1,6 @@
 package com.cognifide.cq.cache.model.reader;
 
 import com.cognifide.cq.cache.definition.ResourceTypeCacheDefinition;
-import com.cognifide.cq.cache.definition.jcr.JcrResourceTypeCacheDefinition;
-import com.cognifide.cq.cache.model.CacheConstants;
 import com.cognifide.cq.cache.model.InvalidationPathUtil;
 import com.cognifide.cq.cache.model.ResourceTypeCacheConfiguration;
 import java.util.ArrayList;
@@ -46,13 +44,9 @@ public class ResourceTypeCacheConfigurationReaderImpl implements ResourceTypeCac
 
 	@Override
 	public ResourceTypeCacheConfiguration readComponentConfiguration(SlingHttpServletRequest request, int defaultTime) {
-		Resource requestedResource = request.getResource();
+		ResourceTypeCacheConfiguration config = createConfiguration(request.getResource(), defaultTime);
 
 		Resource typeResource = getTypeResource(request);
-		Resource cacheResource = request.getResourceResolver().getResource(typeResource, CacheConstants.CACHE_PATH);
-
-		ResourceTypeCacheConfiguration config = createConfiguration(requestedResource, cacheResource, defaultTime);
-
 		if (typeResource != null) {
 			config.setResourceTypePath(typeResource.getPath());
 		}
@@ -72,26 +66,13 @@ public class ResourceTypeCacheConfigurationReaderImpl implements ResourceTypeCac
 		resourceTypeCacheDefinitions.remove(resourceTypeCacheDefinition.getResourceType());
 	}
 
-	private ResourceTypeCacheConfiguration createConfiguration(
-			Resource requestedResource, Resource cacheResource, int defaultTime) {
+	private ResourceTypeCacheConfiguration createConfiguration(Resource requestedResource, int defaultTime) {
 		ResourceTypeCacheDefinition resourceTypeCacheDefinition
-				= findResourceTypeCacheDefinition(requestedResource, cacheResource, defaultTime);
+				= resourceTypeCacheDefinitions.get(requestedResource.getResourceType());
 
 		return null == resourceTypeCacheDefinition
 				? createDefaultResourceTypeCacheConfiguration(requestedResource, defaultTime)
 				: readComponentConfiguration(requestedResource, resourceTypeCacheDefinition, defaultTime);
-	}
-
-	private ResourceTypeCacheDefinition findResourceTypeCacheDefinition(
-			Resource requestedResource, Resource cacheResource, int defaultTime) {
-		ResourceTypeCacheDefinition resourceTypeCacheDefinition = null;
-		if (resourceTypeCacheDefinitions.containsKey(requestedResource.getResourceType())) {
-			resourceTypeCacheDefinition = resourceTypeCacheDefinitions.get(requestedResource.getResourceType());
-		} else if (null != cacheResource) {
-			resourceTypeCacheDefinition
-					= new JcrResourceTypeCacheDefinition(cacheResource, requestedResource, defaultTime);
-		}
-		return resourceTypeCacheDefinition;
 	}
 
 	private ResourceTypeCacheConfiguration createDefaultResourceTypeCacheConfiguration(
