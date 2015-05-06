@@ -6,6 +6,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.regex.Pattern;
+import org.apache.sling.commons.osgi.OsgiUtil;
 
 /**
  * @author Bartosz Rudnicki
@@ -27,10 +28,10 @@ public class ResourceTypeCacheConfiguration extends CacheConfigurationEntry {
 		super(resourceType, time, cacheLevel);
 	}
 
-	public ResourceTypeCacheConfiguration(ResourceTypeCacheDefinition resourceTypeCacheDefinition) {
-		super(resourceTypeCacheDefinition.getResourceType(), resourceTypeCacheDefinition.getValidityTimeInSeconds(),
+	public ResourceTypeCacheConfiguration(ResourceTypeCacheDefinition resourceTypeCacheDefinition, int defaultTime) {
+		super(resourceTypeCacheDefinition.getResourceType(),
+				OsgiUtil.toInteger(resourceTypeCacheDefinition.getValidityTimeInSeconds(), defaultTime),
 				resourceTypeCacheDefinition.getCacheLevel());
-
 		this.enabled = resourceTypeCacheDefinition.isEnabled();
 	}
 

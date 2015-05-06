@@ -27,7 +27,17 @@ public class OsgiConfigurationHelper {
 
 	public static Integer getIntegerValueFrom(String propertyName, ComponentContext componentContext) {
 		Object object = componentContext.getProperties().get(propertyName);
-		return null == object ? null : OsgiUtil.toInteger(object, 0);
+		return isEmpty(object) ? null : OsgiUtil.toInteger(object, 0);
+	}
+
+	private static boolean isEmpty(Object object) {
+		boolean result = false;
+		if (null == object) {
+			result = true;
+		} else if (String.class.isAssignableFrom(object.getClass())) {
+			result = StringUtils.isEmpty((String) object);
+		}
+		return result;
 	}
 
 	private static Object getProperty(String propertyName, ComponentContext componentContext) {

@@ -79,7 +79,7 @@ public class ResourceTypeCacheConfigurationReaderImpl implements ResourceTypeCac
 
 		return null == resourceTypeCacheDefinition
 				? createDefaultResourceTypeCacheConfiguration(requestedResource, defaultTime)
-				: readComponentConfiguration(requestedResource, resourceTypeCacheDefinition);
+				: readComponentConfiguration(requestedResource, resourceTypeCacheDefinition, defaultTime);
 	}
 
 	private ResourceTypeCacheDefinition findResourceTypeCacheDefinition(
@@ -106,8 +106,9 @@ public class ResourceTypeCacheConfigurationReaderImpl implements ResourceTypeCac
 	 * Reads the component cache configuration.
 	 */
 	private ResourceTypeCacheConfiguration readComponentConfiguration(Resource requestedResource,
-			ResourceTypeCacheDefinition resourceTypeCacheDefinition) {
-		ResourceTypeCacheConfiguration config = new ResourceTypeCacheConfiguration(resourceTypeCacheDefinition);
+			ResourceTypeCacheDefinition resourceTypeCacheDefinition, int defaultTime) {
+		ResourceTypeCacheConfiguration config
+				= new ResourceTypeCacheConfiguration(resourceTypeCacheDefinition, defaultTime);
 		return readComponentPathsConfiguration(requestedResource, config, resourceTypeCacheDefinition);
 	}
 
