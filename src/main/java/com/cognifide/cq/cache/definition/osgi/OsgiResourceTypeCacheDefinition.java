@@ -25,25 +25,44 @@ public class OsgiResourceTypeCacheDefinition implements ResourceTypeCacheDefinit
 
 	private static final boolean INVALIDATE_ON_SELF_PROPERTY_DEFAULT_VALUE = true;
 
-	@Property(label = "Active", boolValue = ENABLED_PROPERTY_DEFAULT_VALUE)
+	@Property(
+			label = "Active",
+			description = "Activates/deactivates caching of given component",
+			boolValue = ENABLED_PROPERTY_DEFAULT_VALUE)
 	private static final String ACTIVE_PROPERTY = "cache.config.active";
 
-	@Property(label = "Resource type")
+	@Property(
+			label = "Resource type",
+			description = "Component resource type")
 	private static final String RESOURCE_TYPE_PROPERTY = "cache.config.resource.type";
 
-	@Property(label = "Validity time")
+	@Property(
+			label = "Validity time",
+			description = "Specifies cache entry validity time (in seconds)")
 	private static final String VALIDITY_TIME_PROPERTY = "cache.config.validity.time";
 
-	@Property(label = "Cache level", value = CACHE_LEVEL_PROPERTY_DEFAULT_VALUE)
+	@Property(
+			label = "Cache level",
+			description = "Specifies the level of component caching",
+			value = CACHE_LEVEL_PROPERTY_DEFAULT_VALUE)
 	private static final String CACHE_LEVEL_PROPERTY = "cache.config.cache.level";
 
-	@Property(label = "Invalidate on self", boolValue = INVALIDATE_ON_SELF_PROPERTY_DEFAULT_VALUE)
+	@Property(
+			label = "Invalidate on self",
+			description = "When set to true cached instance will be refreshed if it has been changed",
+			boolValue = INVALIDATE_ON_SELF_PROPERTY_DEFAULT_VALUE)
 	private static final String INVALIDATE_ON_SELF_PROPERTY = "cache.config.invalidate.on.self";
 
-	@Property(label = "Invalidate on referenced fields", unbounded = PropertyUnbounded.ARRAY)
+	@Property(
+			label = "Invalidate on referenced fields",
+			description = "List of component fields that store links to content/configuration/etc. pages. Links from those fields are loaded and each content change inside nodes pointed to by those links will invalidate cache of the current component",
+			unbounded = PropertyUnbounded.ARRAY)
 	private static final String INVALIDATE_ON_REFERENCED_FIELDS_PROPERTY = "cache.config.invalidate.on.referenced.fields";
 
-	@Property(label = "Invalide on paths", unbounded = PropertyUnbounded.ARRAY)
+	@Property(
+			label = "Invalide on paths",
+			description = "If a path of any changed JCR node mathes any path from the list then the cache of the current component is invalidated",
+			unbounded = PropertyUnbounded.ARRAY)
 	private static final String INVALIDATE_ON_PATHS_PROPERTY = "cache.config.invalidate.on.paths";
 
 	private Boolean active;
