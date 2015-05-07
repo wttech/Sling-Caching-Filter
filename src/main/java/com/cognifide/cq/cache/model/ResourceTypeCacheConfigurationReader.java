@@ -18,9 +18,15 @@ public class ResourceTypeCacheConfigurationReader {
 
 	private static final String RESOURCE_TYPE_PATH = "/apps/%s";
 
+	private PathAliasStore pathAliasStore;
+
+	public void setPathAliasStore(PathAliasStore pathAliasStore) {
+		this.pathAliasStore = pathAliasStore;
+	}
+
 	/**
-	 * Reads the configuration for the resource requested in given request. The configuration is read from the
-	 * type of the requested resource.
+	 * Reads the configuration for the resource requested in given request. The configuration is read from the type of
+	 * the requested resource.
 	 */
 	public ResourceTypeCacheConfiguration readComponentConfiguration(SlingHttpServletRequest request,
 			Map<String, CacheConfigurationEntry> cacheConfigurationEntries, int defaultTime) {
@@ -50,8 +56,7 @@ public class ResourceTypeCacheConfigurationReader {
 	}
 
 	/**
-	 * Overrides values from the component .content.xml file with values set up in the OSGi management
-	 * console.
+	 * Overrides values from the component .content.xml file with values set up in the OSGi management console.
 	 */
 	private void overrideComponentSettings(Map<String, CacheConfigurationEntry> cacheConfigurationEntries,
 			Resource requestedResource, ResourceTypeCacheConfiguration config) {
@@ -80,8 +85,8 @@ public class ResourceTypeCacheConfigurationReader {
 	}
 
 	/**
-	 * Prepares a list of all paths that should be listened for changes in order to invalidate the cache of
-	 * given component.
+	 * Prepares a list of all paths that should be listened for changes in order to invalidate the cache of given
+	 * component.
 	 */
 	private void readComponentPathsConfiguration(Resource requestedResource, ValueMap cacheMap,
 			ResourceTypeCacheConfiguration config) {
@@ -102,7 +107,7 @@ public class ResourceTypeCacheConfigurationReader {
 
 	private List<String> getCustomPathInvalidation(ValueMap cacheMap) {
 		String[] invalidatePaths = readArray(cacheMap.get(CacheConstants.CACHE_INVALIDATE_PATHS));
-		return InvalidationPathUtil.getInvalidationPaths(invalidatePaths);
+		return InvalidationPathUtil.getInvalidationPaths(pathAliasStore, invalidatePaths);
 	}
 
 	private List<String> getReferenceFieldInvalidation(Resource requestedResource, ValueMap cacheMap) {
@@ -145,9 +150,9 @@ public class ResourceTypeCacheConfigurationReader {
 	 */
 	private String[] readArray(Object value) {
 		if (value == null) {
-			return new String[] {};
+			return new String[]{};
 		} else if (value instanceof String) {
-			return new String[] { (String) value };
+			return new String[]{(String) value};
 		} else if (value instanceof String[]) {
 			return (String[]) value;
 		} else if (value instanceof Object[]) {

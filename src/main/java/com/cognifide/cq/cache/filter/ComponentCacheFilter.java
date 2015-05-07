@@ -45,10 +45,11 @@ import com.opensymphony.oscache.base.NeedsRefreshException;
 import com.opensymphony.oscache.web.ServletCacheAdministrator;
 import com.opensymphony.oscache.web.filter.ICacheGroupsProvider;
 import com.opensymphony.oscache.web.filter.ICacheKeyProvider;
+import org.apache.felix.scr.annotations.Reference;
 
 /**
  * Sling Caching Filter
- * 
+ *
  * @author Przemyslaw Pakulski
  * @author Jakub Malecki
  * @author Maciej Majchrzak
@@ -61,16 +62,16 @@ public class ComponentCacheFilter implements Filter, ICacheKeyProvider, ICacheGr
 	@Property(label = "Enabled", boolValue = DEFAULT_FILTER_ENABLED)
 	private static final String PROPERTY_FILTER_ENABLED = "cache.config.enabled";
 
-	private static final String[] DEFAULT_FILTER_RESOURCE_TYPES = new String[] {
-			"foundation/components/logo", "geometrixx/components/header" };
+	private static final String[] DEFAULT_FILTER_RESOURCE_TYPES = new String[]{
+		"foundation/components/logo", "geometrixx/components/header"};
 
-	@Property(label = "Resource types", value = { "foundation/components/logo",
-			"geometrixx/components/header" })
+	@Property(label = "Resource types", value = {"foundation/components/logo",
+		"geometrixx/components/header"})
 	private static final String PROPERTY_FILTER_RESOURCE_TYPES = "cache.config.resource-types";
 
-	private static final String[] DEFAULT_PATH_ALIASES = new String[] { "", "" };
+	private static final String[] DEFAULT_PATH_ALIASES = new String[]{"", ""};
 
-	@Property(label = "Path aliases", value = { "", "" }, cardinality = Integer.MAX_VALUE)
+	@Property(label = "Path aliases", value = {"", ""}, cardinality = Integer.MAX_VALUE)
 	private static final String PROPERTY_PATH_ALIASES = "cache.config.pathaliases";
 
 	private static final boolean DEFAULT_MEMORY = true;
@@ -134,7 +135,6 @@ public class ComponentCacheFilter implements Filter, ICacheKeyProvider, ICacheGr
 	private static final String PROPERTY_DURATION = "cache.config.duration";
 
 	// Cache config keys
-
 	private static final String CACHE_PATH_KEY = "cache.path";
 
 	private static final String CACHE_USE_HOST_DOMAIN_KEY = "cache.use.host.domain.in.key";
@@ -148,6 +148,11 @@ public class ComponentCacheFilter implements Filter, ICacheKeyProvider, ICacheGr
 			+ ".cache.duration";
 
 	// Properties read from configuration
+	@Reference
+	private JcrEventsService jcrEventsService;
+
+	@Reference
+	private PathAliasStore pathAliasStore;
 
 	private boolean enabled;
 
@@ -217,7 +222,7 @@ public class ComponentCacheFilter implements Filter, ICacheKeyProvider, ICacheGr
 
 	/**
 	 * Handle OSGi activation
-	 * 
+	 *
 	 * @param context osgi component context
 	 */
 	protected void activate(ComponentContext context) {
@@ -245,18 +250,18 @@ public class ComponentCacheFilter implements Filter, ICacheKeyProvider, ICacheGr
 
 	/**
 	 * Handle OSGi deactivation
-	 * 
+	 *
 	 * @param context osgi component context
 	 */
 	protected void deactivate(ComponentContext context) {
 		log.info("deactivate " + getClass());
 		ServletCacheAdministrator.destroyInstance(servletContext);
-		JcrEventsService.clearEventListeners();
+		jcrEventsService.clearEventListeners();
 	}
 
 	/**
 	 * Read OSGi component configuration
-	 * 
+	 *
 	 * @param context osgi component context
 	 */
 	protected void readConfiguration(ComponentContext context) {
@@ -291,8 +296,8 @@ public class ComponentCacheFilter implements Filter, ICacheKeyProvider, ICacheGr
 		cacheConfigurationEntries = parser.parseEntries(resourceTypes);
 
 		Set<PathAlias> aliases = pathAliasReader.readAliases(aliasesStrings);
-		PathAliasStore pathAliasStore = PathAliasStore.getInstance();
 		pathAliasStore.addAliases(aliases);
+		configurationReader.setPathAliasStore(pathAliasStore);
 
 		configProperties = new Properties();
 		configProperties.put(AbstractCacheAdministrator.CACHE_MEMORY_KEY, Boolean.toString(memory));
@@ -317,6 +322,7 @@ public class ComponentCacheFilter implements Filter, ICacheKeyProvider, ICacheGr
 	@Override
 	public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
 			throws IOException, ServletException {
+
 		if (enabled) {
 			if (request instanceof SlingHttpServletRequest) {
 				SlingHttpServletRequest slingHttpServletRequest = (SlingHttpServletRequest) request;
@@ -374,7 +380,7 @@ public class ComponentCacheFilter implements Filter, ICacheKeyProvider, ICacheGr
 			cacheResponse.getWriter().flush();
 			result = cacheResponse.getContent();
 
-			FilterJcrRefreshPolicy refreshPolicy = new FilterJcrRefreshPolicy(key, cacheConfiguration);
+			FilterJcrRefreshPolicy refreshPolicy = new FilterJcrRefreshPolicy(jcrEventsService, key, cacheConfiguration);
 			try {
 				cache.putInCache(key, result, refreshPolicy);
 			} finally {
@@ -382,7 +388,7 @@ public class ComponentCacheFilter implements Filter, ICacheKeyProvider, ICacheGr
 				SilentRemovalNotificator.notifyListeners(cache);
 			}
 			cache.addCacheEventListener(refreshPolicy);
-			JcrEventsService.addEventListener(refreshPolicy);
+			jcrEventsService.addEventListener(refreshPolicy);
 		}
 
 		return result.toByteArray();

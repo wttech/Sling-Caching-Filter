@@ -3,18 +3,15 @@ package com.cognifide.cq.cache.model;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import org.apache.felix.scr.annotations.Component;
 
+@Component(immediate = true)
 public class PathAliasStore {
 
-	private final Map<String, PathAlias> aliases = new HashMap<String, PathAlias>();
+	private final Map<String, PathAlias> aliases;
 
-	private static final PathAliasStore INSTANCE = new PathAliasStore();
-
-	private PathAliasStore() {
-	}
-
-	public static PathAliasStore getInstance() {
-		return INSTANCE;
+	public PathAliasStore() {
+		aliases = new HashMap<String, PathAlias>();
 	}
 
 	public boolean isAlias(String path) {

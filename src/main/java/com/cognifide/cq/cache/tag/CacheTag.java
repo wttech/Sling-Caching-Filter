@@ -12,11 +12,15 @@ import org.apache.sling.api.SlingHttpServletRequest;
 import com.cognifide.cq.cache.filter.ComponentCacheFilter;
 import com.cognifide.cq.cache.model.CacheKeyGenerator;
 import com.cognifide.cq.cache.model.CacheKeyGeneratorImpl;
+import com.cognifide.cq.cache.model.PathAliasStore;
 import com.cognifide.cq.cache.refresh.jcr.JcrEventsService;
 import com.cognifide.cq.cache.refresh.jcr.TagJcrRefreshPolicy;
 import com.opensymphony.oscache.base.Cache;
 import com.opensymphony.oscache.base.NeedsRefreshException;
 import com.opensymphony.oscache.web.ServletCacheAdministrator;
+import org.osgi.framework.BundleContext;
+import org.osgi.framework.FrameworkUtil;
+import org.osgi.framework.ServiceReference;
 
 /**
  * @author Bartosz Rudnicki
@@ -39,8 +43,13 @@ public class CacheTag extends BodyTagSupport {
 
 	private int cacheLevel;
 
+	private JcrEventsService jcrEventsService;
+
+	private PathAliasStore pathAliasStores;
+
 	public CacheTag() {
 		reset();
+		resolveServiceDependencies();
 	}
 
 	/**
@@ -64,10 +73,11 @@ public class CacheTag extends BodyTagSupport {
 				time = getDefaultDuration();
 			}
 
-			TagJcrRefreshPolicy policy = new TagJcrRefreshPolicy(getKey(), time, getSelfPagePath(),
-					invalidationPaths);
+			TagJcrRefreshPolicy policy
+					= new TagJcrRefreshPolicy(jcrEventsService, pathAliasStores, getKey(), time, getSelfPagePath(),
+							invalidationPaths);
 			cache.putInCache(getKey(), content, policy);
-			JcrEventsService.addEventListener(policy);
+			jcrEventsService.addEventListener(policy);
 			cache.addCacheEventListener(policy);
 		}
 
@@ -192,5 +202,21 @@ public class CacheTag extends BodyTagSupport {
 		time = Integer.MIN_VALUE;
 		invalidationSelf = true;
 		cacheLevel = -1;
+	}
+
+	private void resolveServiceDependencies() {
+		this.jcrEventsService = getService(JcrEventsService.class);
+		this.pathAliasStores = getService(PathAliasStore.class);
+	}
+
+	@SuppressWarnings("unchecked")
+	private <T> T getService(Class<T> serviceClass) {
+		T result = null;
+		BundleContext bundleContext = FrameworkUtil.getBundle(serviceClass).getBundleContext();
+		if (null != bundleContext) {
+			ServiceReference serviceReference = bundleContext.getServiceReference(serviceClass.getName());
+			result = (T) bundleContext.getService(serviceReference);
+		}
+		return result;
 	}
 }
