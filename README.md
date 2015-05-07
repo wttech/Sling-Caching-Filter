@@ -1,6 +1,6 @@
 ## Introduction
 
-Cache bundle is a OSGi bundle that provides caching mechanisms for pages, components or parts of code. Cache bundle uses it's two main components to perform those tasks: cache filter and cache tag.
+Cache bundle is a OSGi bundle that provides caching mechanisms for pages, components or parts of code. Cache bundle uses cache filter.
 
 ## Installation
 
@@ -20,7 +20,7 @@ or download the sources and use the `maven-sling-plugin`:
 
 ### General description
 
-Cache filter is able to cache all pages/renderers/components. It is configured to filter all sling requests on the component level. The only limit is that the whole component is being cached - to cache only a part of a component please use the cache tag.
+Cache filter is able to cache all pages/renderers/components. It is configured to filter all sling requests on the component level. The only limit is that the whole component is being cached.
 
 It is strongly discouraged to enable cache filter on the author instance since this produces issues with CQ js code.
 
@@ -84,24 +84,6 @@ OSGi console allows to modify the following properties:
 * Language segment - index of the path element that stores the language code
 
 For other properties see the [OSCache docs](http://svn.apache.org/repos/asf/db/ojb/trunk/src/config/oscache.properties).
-
-## Cache tag
-
-### General description
-
-The cache tag can be used to cache a part (or the whole) of a jsp page. The benefit of cache tag is that it can cache more than one component at once and it can be used inside conditional tags (e.g. `<c:if>`). The downside of cache tag is that cache tags can be defined and configured only by developers.
-
-### Configuration
-
-Cache tag uses the same cache as the component filter so it also uses filter's configuration.
-Cache tag has the following properties:
-
-| name              | required | description | default value |
-| ----------------- | -------- | ----------- | ------------- |
-| key               | yes      | prefix of the generated cache key | - |
-| cacheLevel        | no       | cache level used to generate cache key, works the same as cacheLevel value stored inside .content.xml files | -1 |
-| invalidationSelf  | no       | should cache be invalidated if current page content is changed | true |
-| invalidationPaths | no       | a semicolon separated list of paths that will be used to construct JCR event based refresh policy | empty list |
 
 ## TODOs
 
