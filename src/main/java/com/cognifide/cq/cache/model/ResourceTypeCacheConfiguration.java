@@ -1,9 +1,12 @@
 package com.cognifide.cq.cache.model;
 
+import com.cognifide.cq.cache.definition.ResourceTypeCacheDefinition;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.regex.Pattern;
+import org.apache.sling.commons.osgi.OsgiUtil;
 
 /**
  * @author Bartosz Rudnicki
@@ -25,6 +28,13 @@ public class ResourceTypeCacheConfiguration extends CacheConfigurationEntry {
 		super(resourceType, time, cacheLevel);
 	}
 
+	public ResourceTypeCacheConfiguration(ResourceTypeCacheDefinition resourceTypeCacheDefinition, int defaultTime) {
+		super(resourceTypeCacheDefinition.getResourceType(),
+				OsgiUtil.toInteger(resourceTypeCacheDefinition.getValidityTimeInSeconds(), defaultTime),
+				resourceTypeCacheDefinition.getCacheLevel());
+		this.enabled = resourceTypeCacheDefinition.isEnabled();
+	}
+
 	public boolean isEnabled() {
 		return enabled;
 	}
@@ -34,7 +44,7 @@ public class ResourceTypeCacheConfiguration extends CacheConfigurationEntry {
 	}
 
 	public List<Pattern> getInvalidatePaths() {
-		return invalidatePaths;
+		return Collections.unmodifiableList(invalidatePaths);
 	}
 
 	public void addInvalidatePath(String regex) {
