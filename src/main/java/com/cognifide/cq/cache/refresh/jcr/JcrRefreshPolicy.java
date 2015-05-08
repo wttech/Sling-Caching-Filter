@@ -22,20 +22,24 @@ public abstract class JcrRefreshPolicy extends ExpiresRefreshPolicy implements J
 
 	private static final long serialVersionUID = -8200859162145262469L;
 
-	protected final List<Pattern> invalidatePaths = new ArrayList<Pattern>();
+	private final JcrEventsService jcrEventsService;
 
 	private final String cacheEntryKey;
 
-	private JcrEventsService jcrEventsService;
+	protected final List<Pattern> invalidatePaths;
 
-	protected boolean contentChanged;
+	private boolean contentChanged;
 
 	public JcrRefreshPolicy(JcrEventsService jcrEventsService, String cacheEntryKey, int time) {
 		super(time);
-		this.cacheEntryKey = cacheEntryKey;
+
 		if (StringUtils.isBlank(cacheEntryKey)) {
 			throw new IllegalArgumentException("Cache entry key can not be blank");
 		}
+
+		this.jcrEventsService = jcrEventsService;
+		this.cacheEntryKey = cacheEntryKey;
+		this.invalidatePaths = new ArrayList<Pattern>();
 	}
 
 	/**
@@ -70,6 +74,10 @@ public abstract class JcrRefreshPolicy extends ExpiresRefreshPolicy implements J
 	 */
 	@Override
 	public void cacheEntryAdded(CacheEntryEvent cacheentryevent) {
+		removeRefreshPolicy(cacheentryevent);
+	}
+
+	private void removeRefreshPolicy(CacheEntryEvent cacheentryevent) {
 		if (cacheEntryKey.equals(cacheentryevent.getKey())) {
 			jcrEventsService.removeEventListener(this);
 			cacheentryevent.getMap().removeCacheEventListener(this);
@@ -81,10 +89,7 @@ public abstract class JcrRefreshPolicy extends ExpiresRefreshPolicy implements J
 	 */
 	@Override
 	public void cacheEntryFlushed(CacheEntryEvent cacheentryevent) {
-		if (cacheEntryKey.equals(cacheentryevent.getKey())) {
-			jcrEventsService.removeEventListener(this);
-			cacheentryevent.getMap().removeCacheEventListener(this);
-		}
+		removeRefreshPolicy(cacheentryevent);
 	}
 
 	/**
@@ -92,10 +97,7 @@ public abstract class JcrRefreshPolicy extends ExpiresRefreshPolicy implements J
 	 */
 	@Override
 	public void cacheEntryRemoved(CacheEntryEvent cacheentryevent) {
-		if (cacheEntryKey.equals(cacheentryevent.getKey())) {
-			jcrEventsService.removeEventListener(this);
-			cacheentryevent.getMap().removeCacheEventListener(this);
-		}
+		removeRefreshPolicy(cacheentryevent);
 	}
 
 	/**
@@ -103,10 +105,7 @@ public abstract class JcrRefreshPolicy extends ExpiresRefreshPolicy implements J
 	 */
 	@Override
 	public void cacheEntryUpdated(CacheEntryEvent cacheentryevent) {
-		if (cacheEntryKey.equals(cacheentryevent.getKey())) {
-			jcrEventsService.removeEventListener(this);
-			cacheentryevent.getMap().removeCacheEventListener(this);
-		}
+		removeRefreshPolicy(cacheentryevent);
 	}
 
 	/**

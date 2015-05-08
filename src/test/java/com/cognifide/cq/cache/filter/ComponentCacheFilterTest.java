@@ -1,11 +1,10 @@
 package com.cognifide.cq.cache.filter;
 
-import com.cognifide.cq.cache.model.PathAliasStore;
+import com.cognifide.cq.cache.model.PathAliasStoreImpl;
 import com.cognifide.cq.cache.model.ResourceTypeCacheConfiguration;
 import com.cognifide.cq.cache.model.reader.ResourceTypeCacheConfigurationReader;
 import com.cognifide.cq.cache.refresh.jcr.FilterJcrRefreshPolicy;
 import com.cognifide.cq.cache.refresh.jcr.JcrEventsService;
-import com.cognifide.cq.cache.test.utils.ServletContextStub;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Dictionary;
@@ -49,6 +48,12 @@ public class ComponentCacheFilterTest {
 
 	private static final String CACHE_ADMINISTRATORS_KEY = "__oscache_admins";
 
+	private static final String CACHE_CONFIG_DURATION_PROPERTY_NAME = "cache.config.duration";
+
+	private static final String CACHE_CONFIG_ENABLED_PROPERTY_NAME = "cache.config.enabled";
+
+	private static final int CACHE_DURATION = 10;
+
 	@Mock
 	private FilterConfig filterConfig;
 
@@ -89,7 +94,7 @@ public class ComponentCacheFilterTest {
 	private JcrEventsService jcrEventsService;
 
 	@Mock
-	private PathAliasStore pathAliasStore;
+	private PathAliasStoreImpl pathAliasStore;
 
 	@Mock
 	private ResourceTypeCacheConfigurationReader configurationReader;
@@ -115,8 +120,8 @@ public class ComponentCacheFilterTest {
 		testedObject.init(filterConfig);
 
 		//then
-		verify(filterConfig, times(1)).getServletContext();
-		verify(servletContext, times(1)).setAttribute(ComponentCacheFilter.SERVLET_CONTEXT_CACHE_ENABLED, Boolean.FALSE);
+		verify(filterConfig).getServletContext();
+		verify(servletContext).setAttribute(ComponentCacheFilter.SERVLET_CONTEXT_CACHE_ENABLED, Boolean.FALSE);
 	}
 
 	@Test
@@ -132,19 +137,19 @@ public class ComponentCacheFilterTest {
 		//then
 		verify(filterConfig).getServletContext();
 		verify(servletContext, times(2)).setAttribute(ComponentCacheFilter.SERVLET_CONTEXT_CACHE_ENABLED, Boolean.TRUE);
-		verify(servletContext, times(2)).setAttribute(ComponentCacheFilter.SERVLET_CONTEXT_CACHE_DURATION, 10);
+		verify(servletContext, times(2))
+				.setAttribute(ComponentCacheFilter.SERVLET_CONTEXT_CACHE_DURATION, CACHE_DURATION);
 	}
 
 	private void setUpFilterConfig() {
 		when(filterConfig.getServletContext()).thenReturn(servletContext);
-		when(servletContext.getAttribute(ServletContextStub.CACHE_ADMINS_LIST_KEY))
-				.thenReturn(new HashMap<Object, Object>(2));
+		when(servletContext.getAttribute(CACHE_ADMINISTRATORS_KEY)).thenReturn(new HashMap<Object, Object>(2));
 	}
 
 	private void setUpComponentContextWithEnabledSettings() {
 		when(componentContext.getProperties()).thenReturn(dictionary);
-		when(dictionary.get("cache.config.enabled")).thenReturn(true);
-		when(dictionary.get("cache.config.duration")).thenReturn(10);
+		when(dictionary.get(CACHE_CONFIG_ENABLED_PROPERTY_NAME)).thenReturn(true);
+		when(dictionary.get(CACHE_CONFIG_DURATION_PROPERTY_NAME)).thenReturn(CACHE_DURATION);
 	}
 
 	@Test
@@ -161,7 +166,7 @@ public class ComponentCacheFilterTest {
 
 	private void setUpComponentContextWithDisabledSettings() {
 		when(componentContext.getProperties()).thenReturn(dictionary);
-		when(dictionary.get("cache.config.enabled")).thenReturn(false);
+		when(dictionary.get(CACHE_CONFIG_ENABLED_PROPERTY_NAME)).thenReturn(false);
 	}
 
 	@Test
@@ -206,7 +211,8 @@ public class ComponentCacheFilterTest {
 	}
 
 	private void setUpConfigurationReaderWithCachedConfigurationEnabled() {
-		when(configurationReader.readComponentConfiguration(request, 10)).thenReturn(resourceTypeCacheConfiguration);
+		when(configurationReader.readComponentConfiguration(request, CACHE_DURATION))
+				.thenReturn(resourceTypeCacheConfiguration);
 		when(resourceTypeCacheConfiguration.isEnabled()).thenReturn(true);
 	}
 
@@ -228,7 +234,8 @@ public class ComponentCacheFilterTest {
 	}
 
 	private void setUpConfigurationReaderWithCachedConfigurationDisabled() {
-		when(configurationReader.readComponentConfiguration(request, 10)).thenReturn(resourceTypeCacheConfiguration);
+		when(configurationReader.readComponentConfiguration(request, CACHE_DURATION))
+				.thenReturn(resourceTypeCacheConfiguration);
 		when(resourceTypeCacheConfiguration.isEnabled()).thenReturn(false);
 	}
 

@@ -1,33 +1,29 @@
 package com.cognifide.cq.cache.refresh.jcr;
 
-import static org.easymock.EasyMock.createMock;
-import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.replay;
-import static org.easymock.EasyMock.verify;
-
-import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.Workspace;
-import javax.jcr.observation.Event;
-import javax.jcr.observation.EventIterator;
 import javax.jcr.observation.ObservationManager;
 
 import org.apache.sling.jcr.api.SlingRepository;
 import org.junit.Test;
-import org.osgi.service.component.ComponentContext;
-
-import com.cognifide.cq.cache.test.utils.ReflectionHelper;
 import java.lang.reflect.Field;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.jcr.observation.Event;
+import javax.jcr.observation.EventIterator;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
+import org.junit.Before;
 import org.junit.Rule;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Mockito;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.when;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -46,18 +42,45 @@ public class JcrEventsServiceTest {
 	private static final String PATH_4 = "/libs/other/page/changed";
 
 	@Mock
+	private EventIterator eventIterator;
+
+	@Mock
+	private Event event1;
+
+	@Mock
+	private Event event2;
+
+	@Mock
+	private Event event3;
+
+	@Mock
+	private Event event4;
+
+	@Mock
 	private JcrEventListener listener;
 
 	@Mock
 	private SlingRepository repository;
 
+	private Session session;
+
+	@Mock
+	private Workspace workspace;
+
+	@Mock
+	private ObservationManager observationManager;
+
 	@InjectMocks
 	private JcrEventsService testedObject = new JcrEventsService();
 
-	private List<JcrEventListener> listeners;
-
 	@Rule
 	public MockitoRule mockitoRule = MockitoJUnit.rule();
+
+	@Before
+	public void setUp() {
+		// ommits injecting session to tested object
+		session = mock(Session.class);
+	}
 
 	@Test
 	public void shouldAddEventListenerWhenAskedToAdd() {
@@ -112,129 +135,67 @@ public class JcrEventsServiceTest {
 	}
 
 	@Test
-	public void testOnEvent() throws RepositoryException {
-		EventIterator eventIterator = createMock(EventIterator.class);
-		Event event1 = createMock(Event.class);
-		Event event2 = createMock(Event.class);
-		Event event3 = createMock(Event.class);
-		Event event4 = createMock(Event.class);
-		JcrEventListener listener = createMock(JcrEventListener.class);
-//		JcrEventsService.addEventListener(listener);
-
-		expect(eventIterator.hasNext()).andReturn(true);
-		expect(eventIterator.nextEvent()).andReturn(event1);
-		expect(event1.getPath()).andReturn(PATH_1);
-		expect(listener.contentChanged(PATH_1)).andReturn(false);
-
-		expect(eventIterator.hasNext()).andReturn(true);
-		expect(eventIterator.nextEvent()).andReturn(event2);
-		expect(event2.getPath()).andReturn(PATH_2);
-
-		expect(eventIterator.hasNext()).andReturn(true);
-		expect(eventIterator.nextEvent()).andReturn(event3);
-		expect(event3.getPath()).andReturn(PATH_3);
-		expect(listener.contentChanged(PATH_3)).andReturn(false);
-
-		expect(eventIterator.hasNext()).andReturn(true);
-		expect(eventIterator.nextEvent()).andReturn(event4);
-		expect(event4.getPath()).andReturn(PATH_4);
-
-		expect(eventIterator.hasNext()).andReturn(false);
-
-		replay(eventIterator, event1, event2, event3, event4, listener);
-		testedObject.onEvent(eventIterator);
-		verify(eventIterator, event1, event2, event3, event4, listener);
-	}
-
-	@Mock
-	private EventIterator eventIterator;
-
-	@Mock
-	private Event event1;
-
-	@Mock
-	private Event event2;
-
-	@Mock
-	private Event event3;
-
-	@Mock
-	private Event event4;
-
-	@Test
-	public void should() throws RepositoryException {
+	public void shouldHandleEventsWithPathsStartingWithContentAndApps() throws RepositoryException {
+		//given
 		when(eventIterator.hasNext()).thenReturn(true, true, true, true, false);
 		when(eventIterator.nextEvent()).thenReturn(event1, event2, event3, event4);
 		when(event1.getPath()).thenReturn(PATH_1);
 		when(event2.getPath()).thenReturn(PATH_2);
 		when(event3.getPath()).thenReturn(PATH_3);
 		when(event4.getPath()).thenReturn(PATH_4);
-		when(listener.contentChanged(PATH_1)).thenReturn(false);
-		when(listener.contentChanged(PATH_3)).thenReturn(false);
+		testedObject.addEventListener(listener);
 
+		//when
 		testedObject.onEvent(eventIterator);
+
+		//then
+		Mockito.verify(eventIterator, times(5)).hasNext();
+		Mockito.verify(eventIterator, times(4)).nextEvent();
+		Mockito.verify(listener).contentChanged(PATH_1);
+		Mockito.verify(listener, never()).contentChanged(PATH_2);
+		Mockito.verify(listener).contentChanged(PATH_3);
+		Mockito.verify(listener, never()).contentChanged(PATH_4);
 	}
 
 	@Test
-	public void testActivate() throws IllegalAccessException, RepositoryException, InvocationTargetException,
-			NoSuchFieldException, NoSuchMethodException {
-		SlingRepository repository = createMock(SlingRepository.class);
-		Session session = createMock(Session.class);
-		Workspace workspace = createMock(Workspace.class);
-		ObservationManager observationManager = createMock(ObservationManager.class);
+	public void observerationManagerShouldRegisterJcrEventsService() throws RepositoryException {
+		//given
+		setUpRepository();
 
-		ReflectionHelper.set(JcrEventsService.class, "repository", testedObject, repository);
+		//when
+		testedObject.activate();
 
-		expect(repository.loginAdministrative(null)).andReturn(session);
-		expect(session.getWorkspace()).andReturn(workspace);
-		expect(workspace.getObservationManager()).andReturn(observationManager);
-		observationManager
+		//then
+		Mockito.verify(observationManager)
 				.addEventListener(testedObject, JcrEventsService.ALL_TYPES, "/", true, null, null, false);
+	}
 
-		replay(repository, session, workspace, observationManager);
-		ReflectionHelper.invoke(JcrEventsService.class, "activate",
-				new Class<?>[]{ComponentContext.class}, testedObject, new Object[]{null});
-		verify(repository, session, workspace, observationManager);
+	private void setUpRepository() throws RepositoryException {
+		when(repository.loginAdministrative(null)).thenReturn(session);
+		when(session.getWorkspace()).thenReturn(workspace);
+		when(workspace.getObservationManager()).thenReturn(observationManager);
 	}
 
 	@Test
-	public void testNullAdminDeactivate() throws Exception {
-		ReflectionHelper.set(JcrEventsService.class, "admin", testedObject, null);
-		ReflectionHelper.invoke(JcrEventsService.class, "deactivate",
-				new Class<?>[]{ComponentContext.class}, testedObject, new Object[]{null});
+	public void shouldDeactivateWithoutExceptionWhenNoSession() throws RepositoryException {
+		//when
+		testedObject.deactivate();
+
+		//then
+		Mockito.verify(observationManager, never()).removeEventListener(testedObject);
 	}
 
 	@Test
-	public void testNotNullAdminDeactivate() throws Exception {
-		Session admin = createMock(Session.class);
-		Workspace workspace = createMock(Workspace.class);
-		ObservationManager observationManager = createMock(ObservationManager.class);
-		ReflectionHelper.set(JcrEventsService.class, "admin", testedObject, admin);
+	public void shouldDeactivateAndUnregisterFromObservationManagerWhenSession() throws RepositoryException {
+		//given
+		setUpRepository();
+		testedObject.activate();
 
-		expect(admin.getWorkspace()).andReturn(workspace);
-		expect(workspace.getObservationManager()).andReturn(observationManager);
-		observationManager.removeEventListener(testedObject);
-		admin.logout();
+		//when
+		testedObject.deactivate();
 
-		replay(admin, workspace, observationManager);
-		ReflectionHelper.invoke(JcrEventsService.class, "deactivate",
-				new Class<?>[]{ComponentContext.class}, testedObject, new Object[]{null});
-		verify(admin, workspace, observationManager);
-	}
-
-	@Test
-	public void testNotNullAdminDeactivateWithException() throws Exception {
-		Session admin = createMock(Session.class);
-		Workspace workspace = createMock(Workspace.class);
-		ReflectionHelper.set(JcrEventsService.class, "admin", testedObject, admin);
-
-		expect(admin.getWorkspace()).andReturn(workspace);
-		expect(workspace.getObservationManager()).andThrow(new RepositoryException());
-		admin.logout();
-
-		replay(admin, workspace);
-		ReflectionHelper.invoke(JcrEventsService.class, "deactivate",
-				new Class<?>[]{ComponentContext.class}, testedObject, new Object[]{null});
-		verify(admin, workspace);
+		//then
+		Mockito.verify(observationManager).removeEventListener(testedObject);
+		Mockito.verify(session).logout();
 	}
 }
