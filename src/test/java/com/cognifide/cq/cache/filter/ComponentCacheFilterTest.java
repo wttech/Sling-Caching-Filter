@@ -1,6 +1,8 @@
 package com.cognifide.cq.cache.filter;
 
 import com.cognifide.cq.cache.model.PathAliasStore;
+import com.cognifide.cq.cache.model.ResourceTypeCacheConfiguration;
+import com.cognifide.cq.cache.model.reader.ResourceTypeCacheConfigurationReader;
 import com.cognifide.cq.cache.refresh.jcr.FilterJcrRefreshPolicy;
 import com.cognifide.cq.cache.refresh.jcr.JcrEventsService;
 import com.cognifide.cq.cache.test.utils.ServletContextStub;
@@ -19,7 +21,6 @@ import org.apache.sling.api.SlingHttpServletResponse;
 import org.apache.sling.api.request.RequestPathInfo;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
-import org.apache.sling.api.resource.ValueMap;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.core.IsNull.nullValue;
 import static org.junit.Assert.assertThat;
@@ -76,9 +77,6 @@ public class ComponentCacheFilterTest {
 	private ResourceResolver resourceResolver;
 
 	@Mock
-	private ValueMap valueMap;
-
-	@Mock
 	private RequestPathInfo requestPathInfo;
 
 	@Mock
@@ -92,6 +90,12 @@ public class ComponentCacheFilterTest {
 
 	@Mock
 	private PathAliasStore pathAliasStore;
+
+	@Mock
+	private ResourceTypeCacheConfigurationReader configurationReader;
+
+	@Mock
+	private ResourceTypeCacheConfiguration resourceTypeCacheConfiguration;
 
 	@InjectMocks
 	private ComponentCacheFilter testedObject = new ComponentCacheFilter();
@@ -126,7 +130,7 @@ public class ComponentCacheFilterTest {
 		testedObject.init(filterConfig);
 
 		//then
-		verify(filterConfig, times(1)).getServletContext();
+		verify(filterConfig).getServletContext();
 		verify(servletContext, times(2)).setAttribute(ComponentCacheFilter.SERVLET_CONTEXT_CACHE_ENABLED, Boolean.TRUE);
 		verify(servletContext, times(2)).setAttribute(ComponentCacheFilter.SERVLET_CONTEXT_CACHE_DURATION, 10);
 	}
@@ -152,8 +156,7 @@ public class ComponentCacheFilterTest {
 		testedObject.activate(componentContext);
 
 		//then
-		verify(servletContext, times(1))
-				.setAttribute("com.cognifide.cq.cache.filter.ComponentCacheFilter.cache.enabled", false);
+		verify(servletContext).setAttribute("com.cognifide.cq.cache.filter.ComponentCacheFilter.cache.enabled", false);
 	}
 
 	private void setUpComponentContextWithDisabledSettings() {
@@ -174,38 +177,16 @@ public class ComponentCacheFilterTest {
 
 		//then
 		verify(servletContext, atLeast(1)).getAttribute(CACHE_ADMINISTRATORS_KEY);
-		verify(servletContext, times(1)).removeAttribute(CACHE_ADMINISTRATORS_KEY);
+		verify(servletContext).removeAttribute(CACHE_ADMINISTRATORS_KEY);
 	}
 
 	@Test
-	public void shouldCacheResourceIfConfigurationIsEnabledInOsgi() throws IOException, ServletException {
+	public void shouldCacheResourceIfConfigurationIsEnabled() throws IOException, ServletException {
 		//given
 		setUpFilterConfig();
 		setUpComponentContextWithEnabledSettings();
+		setUpConfigurationReaderWithCachedConfigurationEnabled();
 		setUpRequest();
-		setUpResponse();
-
-		when(dictionary.get("cache.config.resource-types")).thenReturn(new String[]{"/resource/type"});
-
-		//when
-		testedObject.init(filterConfig);
-		testedObject.activate(componentContext);
-		testedObject.doFilter(request, response, filterChain);
-
-		//then
-		verify(filterChain, times(1))
-				.doFilter(eq(request), any(CacheHttpServletResponseWrapper.class));
-		verify(jcrEventsService, times(1)).addEventListener(any(FilterJcrRefreshPolicy.class));
-		verify(writer, times(1)).write(anyString());
-	}
-
-	@Test
-	public void shouldCacheResourceIfConfigurationIsEnabledInJcr() throws IOException, ServletException {
-		//given
-		setUpFilterConfig();
-		setUpComponentContextWithEnabledSettings();
-		setUpRequest();
-		setUpResource();
 		setUpResponse();
 
 		//when
@@ -214,10 +195,9 @@ public class ComponentCacheFilterTest {
 		testedObject.doFilter(request, response, filterChain);
 
 		//then
-		verify(filterChain, times(1))
-				.doFilter(eq(request), any(CacheHttpServletResponseWrapper.class));
-		verify(jcrEventsService, times(1)).addEventListener(any(FilterJcrRefreshPolicy.class));
-		verify(writer, times(1)).write(anyString());
+		verify(filterChain).doFilter(eq(request), any(CacheHttpServletResponseWrapper.class));
+		verify(jcrEventsService).addEventListener(any(FilterJcrRefreshPolicy.class));
+		verify(writer).write(anyString());
 	}
 
 	private void setUpResponse() throws IOException {
@@ -225,23 +205,17 @@ public class ComponentCacheFilterTest {
 		when(response.getWriter()).thenReturn(writer);
 	}
 
-	private void setUpResource() {
-		when(resourceResolver.getResource(resource, "cache")).thenReturn(resource);
-		when(resource.adaptTo(ValueMap.class)).thenReturn(valueMap);
-		when(valueMap.get("cog:cacheLevel", Integer.MIN_VALUE)).thenReturn(Integer.MIN_VALUE);
-		when(valueMap.get("cog:validityTime", 10)).thenReturn(10);
-		when(valueMap.get("cog:cacheEnabled", false)).thenReturn(true);
-		when(valueMap.get("cog:invalidateOnSelf", true)).thenReturn(true);
-		when(valueMap.get("cog:invalidateOnPaths", false)).thenReturn(true);
-		when(valueMap.get("cog:cacheEnabled")).thenReturn(new String[0]);
-		when(valueMap.get("cog:invalidateOnReferencedFields")).thenReturn(new String[0]);
+	private void setUpConfigurationReaderWithCachedConfigurationEnabled() {
+		when(configurationReader.readComponentConfiguration(request, 10)).thenReturn(resourceTypeCacheConfiguration);
+		when(resourceTypeCacheConfiguration.isEnabled()).thenReturn(true);
 	}
 
 	@Test
-	public void shouldNotCacheResourceIfConfigurationIsDisabledInJcr() throws IOException, ServletException {
+	public void shouldNotCacheResourceIfConfigurationIsDisabled() throws IOException, ServletException {
 		//given
 		setUpFilterConfig();
 		setUpComponentContextWithEnabledSettings();
+		setUpConfigurationReaderWithCachedConfigurationDisabled();
 		setUpRequest();
 
 		//when
@@ -250,7 +224,12 @@ public class ComponentCacheFilterTest {
 		testedObject.doFilter(request, response, filterChain);
 
 		//then
-		verify(filterChain, times(1)).doFilter(request, response);
+		verify(filterChain).doFilter(request, response);
+	}
+
+	private void setUpConfigurationReaderWithCachedConfigurationDisabled() {
+		when(configurationReader.readComponentConfiguration(request, 10)).thenReturn(resourceTypeCacheConfiguration);
+		when(resourceTypeCacheConfiguration.isEnabled()).thenReturn(false);
 	}
 
 	private void setUpRequest() {
@@ -276,7 +255,7 @@ public class ComponentCacheFilterTest {
 
 		//then
 		verifyZeroInteractions(otherRequest);
-		verify(filterChain, times(1)).doFilter(otherRequest, response);
+		verify(filterChain).doFilter(otherRequest, response);
 	}
 
 	@Test
@@ -292,7 +271,7 @@ public class ComponentCacheFilterTest {
 
 		//then
 		verify(request, never()).getResource();
-		verify(filterChain, times(1)).doFilter(request, response);
+		verify(filterChain).doFilter(request, response);
 	}
 
 	@Test

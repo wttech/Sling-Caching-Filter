@@ -22,7 +22,7 @@ public class FilterJcrRefreshPolicyTest extends JcrRefreshPolicyTestBase<FilterJ
 	@Override
 	protected FilterJcrRefreshPolicy getNewRefreshPolicyInstance(String key, String[] paths) {
 		ResourceTypeCacheConfiguration resourceTypeCacheConfiguration = new ResourceTypeCacheConfiguration(
-				null, DEFAULT_REFRESH_TIME);
+				(String) null, DEFAULT_REFRESH_TIME);
 
 		for (String path : paths) {
 			resourceTypeCacheConfiguration.addInvalidatePath(path);
@@ -34,7 +34,7 @@ public class FilterJcrRefreshPolicyTest extends JcrRefreshPolicyTestBase<FilterJ
 	@Test
 	public void testObjectCreation() throws Exception {
 		ResourceTypeCacheConfiguration resourceTypeCacheConfiguration = new ResourceTypeCacheConfiguration(
-				null, DEFAULT_REFRESH_TIME);
+				(String) null, DEFAULT_REFRESH_TIME);
 		resourceTypeCacheConfiguration.addInvalidatePath(INSTANCE_INVALIDATE_PATH);
 		resourceTypeCacheConfiguration.addInvalidatePath(OTHER_INVALIDATE_PATH);
 		resourceTypeCacheConfiguration.setResourceTypePath(RESOURCE_TYPE_PATH);

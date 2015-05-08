@@ -26,7 +26,7 @@ It is strongly discouraged to enable cache filter on the author instance since t
 
 ### Configuration
 
-Cache filter is configured in two places: in the OSGi console and inside the application which components are being cached.
+Cache filter can be configured in three places: in the OSGi console (filter configuration and components configurations) and inside the application which components are being cached.
 
 #### Cached application internal configuration
 
@@ -68,22 +68,23 @@ An example configuration of Showcase's header component (`.content.xml`) could l
 
 Please notice the obligatory cog namespace definition in the second line.
 
-#### OSGi console
+#### OSGi console - Sling Caching Filter
 
 OSGi console allows to modify the following properties:
 
 * Enabled - enables/disables cache filter
-* Resource types - List of cached components types. Each entry on the list has the following format: `component_type[:duration[:level]]` where
-* component_type - component type with full path. when present it acts as if the component had it's property enabled set to true inside it's .conent.xml file. Adding this line overrides the the enabled property set (if present) in the .conent.xml files.
-* duration - overrides the validTime property set inside the .content.xml file
-* level - overrides the cacheLevel property set inside the .content.xml file
-* Capacity - cache capacity
 * Memory - store cache in memory/on disk
+* Capacity - cache capacity
 * Algorithm - cache entry removal algorithm
 * Duration - Maximum default time (in seconds) after which cache entry must be refreshed
-* Language segment - index of the path element that stores the language code
 
 For other properties see the [OSCache docs](http://svn.apache.org/repos/asf/db/ojb/trunk/src/config/oscache.properties).
+
+#### OSGi console - Sling Caching Filter Resource Type Definition
+
+OSGi console allows to add the same configuration as in `.content.xml`. The only differences are:
+* Active - same as `cog:cacheEnabled`
+* Resource type - identifies component for which caching should be enabled
 
 ## TODOs
 

@@ -1,7 +1,5 @@
 package com.cognifide.cq.cache.refresh.jcr;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
@@ -18,12 +16,21 @@ import javax.jcr.observation.EventIterator;
 import javax.jcr.observation.ObservationManager;
 
 import org.apache.sling.jcr.api.SlingRepository;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 import org.osgi.service.component.ComponentContext;
 
 import com.cognifide.cq.cache.test.utils.ReflectionHelper;
+import java.lang.reflect.Field;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
+import org.junit.Rule;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import static org.mockito.Mockito.when;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
 
 /**
  * @author Bartosz Rudnicki
@@ -38,64 +45,70 @@ public class JcrEventsServiceTest {
 
 	private static final String PATH_4 = "/libs/other/page/changed";
 
-	private JcrEventsService service;
+	@Mock
+	private JcrEventListener listener;
+
+	@Mock
+	private SlingRepository repository;
+
+	@InjectMocks
+	private JcrEventsService testedObject = new JcrEventsService();
 
 	private List<JcrEventListener> listeners;
 
-	@Before
-	public void setUp() throws Exception {
-		service = new JcrEventsService();
-		JcrEventsService.clearEventListeners();
-		listeners = ReflectionHelper.get(JcrEventsService.class, "listeners");
+	@Rule
+	public MockitoRule mockitoRule = MockitoJUnit.rule();
+
+	@Test
+	public void shouldAddEventListenerWhenAskedToAdd() {
+		//when
+		testedObject.addEventListener(listener);
+
+		//then
+		assertThat(getListenersFromTestedObject().size(), is(1));
 	}
 
-	@After
-	public void tearDown() {
-		JcrEventsService.clearEventListeners();
+	@SuppressWarnings("unchecked")
+	private List<JcrEventListener> getListenersFromTestedObject() {
+		List<JcrEventListener> result = null;
+		try {
+			Field listenersField = testedObject.getClass().getDeclaredField("listeners");
+			listenersField.setAccessible(true);
+			result = (List<JcrEventListener>) listenersField.get(testedObject);
+		} catch (NoSuchFieldException ex) {
+			Logger.getLogger(JcrEventsServiceTest.class.getName()).log(Level.SEVERE, null, ex);
+		} catch (SecurityException ex) {
+			Logger.getLogger(JcrEventsServiceTest.class.getName()).log(Level.SEVERE, null, ex);
+		} catch (IllegalArgumentException ex) {
+			Logger.getLogger(JcrEventsServiceTest.class.getName()).log(Level.SEVERE, null, ex);
+		} catch (IllegalAccessException ex) {
+			Logger.getLogger(JcrEventsServiceTest.class.getName()).log(Level.SEVERE, null, ex);
+		}
+		return result;
 	}
 
 	@Test
-	public void testAddRemoveEventListener() {
-		assertTrue(listeners.isEmpty());
+	public void shouldRemoveEventListenerWhenAskedToRemove() {
+		//given
+		testedObject.addEventListener(listener);
 
-		JcrEventListener listener1 = createMock(JcrEventListener.class);
-		JcrEventListener listener2 = createMock(JcrEventListener.class);
+		//when
+		testedObject.removeEventListener(listener);
 
-		JcrEventsService.addEventListener(listener1);
-		assertEquals(1, listeners.size());
-		assertEquals(listener1, listeners.get(0));
-
-		JcrEventsService.addEventListener(listener2);
-		assertEquals(2, listeners.size());
-		assertEquals(listener2, listeners.get(1));
-
-		JcrEventsService.removeEventListener(listener1);
-		assertEquals(1, listeners.size());
-		assertEquals(listener2, listeners.get(0));
-
-		JcrEventsService.removeEventListener(listener1);
-		assertEquals(1, listeners.size());
-		assertEquals(listener2, listeners.get(0));
-
-		JcrEventsService.removeEventListener(listener2);
-		assertTrue(listeners.isEmpty());
+		//then
+		assertThat(getListenersFromTestedObject().size(), is(0));
 	}
 
 	@Test
-	public void testClearEventListeners() {
-		assertTrue(listeners.isEmpty());
+	public void shouldRemoveAllEventListenersWhenAskedToClear() {
+		//given
+		testedObject.addEventListener(listener);
 
-		JcrEventListener listener1 = createMock(JcrEventListener.class);
-		JcrEventListener listener2 = createMock(JcrEventListener.class);
+		//when
+		testedObject.clearEventListeners();
 
-		JcrEventsService.addEventListener(listener1);
-		JcrEventsService.addEventListener(listener2);
-
-		assertEquals(2, listeners.size());
-
-		JcrEventsService.clearEventListeners();
-
-		assertTrue(listeners.isEmpty());
+		//then
+		assertThat(getListenersFromTestedObject().size(), is(0));
 	}
 
 	@Test
@@ -106,7 +119,7 @@ public class JcrEventsServiceTest {
 		Event event3 = createMock(Event.class);
 		Event event4 = createMock(Event.class);
 		JcrEventListener listener = createMock(JcrEventListener.class);
-		JcrEventsService.addEventListener(listener);
+//		JcrEventsService.addEventListener(listener);
 
 		expect(eventIterator.hasNext()).andReturn(true);
 		expect(eventIterator.nextEvent()).andReturn(event1);
@@ -129,8 +142,37 @@ public class JcrEventsServiceTest {
 		expect(eventIterator.hasNext()).andReturn(false);
 
 		replay(eventIterator, event1, event2, event3, event4, listener);
-		service.onEvent(eventIterator);
+		testedObject.onEvent(eventIterator);
 		verify(eventIterator, event1, event2, event3, event4, listener);
+	}
+
+	@Mock
+	private EventIterator eventIterator;
+
+	@Mock
+	private Event event1;
+
+	@Mock
+	private Event event2;
+
+	@Mock
+	private Event event3;
+
+	@Mock
+	private Event event4;
+
+	@Test
+	public void should() throws RepositoryException {
+		when(eventIterator.hasNext()).thenReturn(true, true, true, true, false);
+		when(eventIterator.nextEvent()).thenReturn(event1, event2, event3, event4);
+		when(event1.getPath()).thenReturn(PATH_1);
+		when(event2.getPath()).thenReturn(PATH_2);
+		when(event3.getPath()).thenReturn(PATH_3);
+		when(event4.getPath()).thenReturn(PATH_4);
+		when(listener.contentChanged(PATH_1)).thenReturn(false);
+		when(listener.contentChanged(PATH_3)).thenReturn(false);
+
+		testedObject.onEvent(eventIterator);
 	}
 
 	@Test
@@ -141,25 +183,25 @@ public class JcrEventsServiceTest {
 		Workspace workspace = createMock(Workspace.class);
 		ObservationManager observationManager = createMock(ObservationManager.class);
 
-		ReflectionHelper.set(JcrEventsService.class, "repository", service, repository);
+		ReflectionHelper.set(JcrEventsService.class, "repository", testedObject, repository);
 
 		expect(repository.loginAdministrative(null)).andReturn(session);
 		expect(session.getWorkspace()).andReturn(workspace);
 		expect(workspace.getObservationManager()).andReturn(observationManager);
 		observationManager
-				.addEventListener(service, JcrEventsService.ALL_TYPES, "/", true, null, null, false);
+				.addEventListener(testedObject, JcrEventsService.ALL_TYPES, "/", true, null, null, false);
 
 		replay(repository, session, workspace, observationManager);
 		ReflectionHelper.invoke(JcrEventsService.class, "activate",
-				new Class<?>[] { ComponentContext.class }, service, new Object[] { null });
+				new Class<?>[]{ComponentContext.class}, testedObject, new Object[]{null});
 		verify(repository, session, workspace, observationManager);
 	}
 
 	@Test
 	public void testNullAdminDeactivate() throws Exception {
-		ReflectionHelper.set(JcrEventsService.class, "admin", service, null);
+		ReflectionHelper.set(JcrEventsService.class, "admin", testedObject, null);
 		ReflectionHelper.invoke(JcrEventsService.class, "deactivate",
-				new Class<?>[] { ComponentContext.class }, service, new Object[] { null });
+				new Class<?>[]{ComponentContext.class}, testedObject, new Object[]{null});
 	}
 
 	@Test
@@ -167,16 +209,16 @@ public class JcrEventsServiceTest {
 		Session admin = createMock(Session.class);
 		Workspace workspace = createMock(Workspace.class);
 		ObservationManager observationManager = createMock(ObservationManager.class);
-		ReflectionHelper.set(JcrEventsService.class, "admin", service, admin);
+		ReflectionHelper.set(JcrEventsService.class, "admin", testedObject, admin);
 
 		expect(admin.getWorkspace()).andReturn(workspace);
 		expect(workspace.getObservationManager()).andReturn(observationManager);
-		observationManager.removeEventListener(service);
+		observationManager.removeEventListener(testedObject);
 		admin.logout();
 
 		replay(admin, workspace, observationManager);
 		ReflectionHelper.invoke(JcrEventsService.class, "deactivate",
-				new Class<?>[] { ComponentContext.class }, service, new Object[] { null });
+				new Class<?>[]{ComponentContext.class}, testedObject, new Object[]{null});
 		verify(admin, workspace, observationManager);
 	}
 
@@ -184,7 +226,7 @@ public class JcrEventsServiceTest {
 	public void testNotNullAdminDeactivateWithException() throws Exception {
 		Session admin = createMock(Session.class);
 		Workspace workspace = createMock(Workspace.class);
-		ReflectionHelper.set(JcrEventsService.class, "admin", service, admin);
+		ReflectionHelper.set(JcrEventsService.class, "admin", testedObject, admin);
 
 		expect(admin.getWorkspace()).andReturn(workspace);
 		expect(workspace.getObservationManager()).andThrow(new RepositoryException());
@@ -192,7 +234,7 @@ public class JcrEventsServiceTest {
 
 		replay(admin, workspace);
 		ReflectionHelper.invoke(JcrEventsService.class, "deactivate",
-				new Class<?>[] { ComponentContext.class }, service, new Object[] { null });
+				new Class<?>[]{ComponentContext.class}, testedObject, new Object[]{null});
 		verify(admin, workspace);
 	}
 }
