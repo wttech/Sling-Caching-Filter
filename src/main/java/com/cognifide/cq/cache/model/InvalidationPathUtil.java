@@ -1,5 +1,6 @@
 package com.cognifide.cq.cache.model;
 
+import com.cognifide.cq.cache.model.alias.PathAliasStore;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;

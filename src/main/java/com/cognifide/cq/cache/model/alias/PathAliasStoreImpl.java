@@ -1,6 +1,7 @@
-package com.cognifide.cq.cache.model;
+package com.cognifide.cq.cache.model.alias;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.felix.scr.annotations.Component;
@@ -23,7 +24,7 @@ public class PathAliasStoreImpl implements PathAliasStore {
 
 	@Override
 	public Collection<String> getPathsForAlias(String aliasName) {
-		Collection<String> paths = null;
+		Collection<String> paths = Collections.emptySet();
 		if (aliasName != null) {
 			PathAlias pathAlias = aliases.get(aliasName);
 			paths = pathAlias.getPaths();
@@ -43,6 +44,7 @@ public class PathAliasStoreImpl implements PathAliasStore {
 		}
 	}
 
+	@Override
 	public void clear() {
 		aliases.clear();
 	}

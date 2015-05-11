@@ -2,7 +2,7 @@ package com.cognifide.cq.cache.model.reader;
 
 import com.cognifide.cq.cache.definition.ResourceTypeCacheDefinition;
 import com.cognifide.cq.cache.model.CacheConstants;
-import com.cognifide.cq.cache.model.PathAliasStoreImpl;
+import com.cognifide.cq.cache.model.alias.PathAliasStoreImpl;
 import com.cognifide.cq.cache.model.ResourceTypeCacheConfiguration;
 import org.junit.Test;
 
