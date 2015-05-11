@@ -49,19 +49,43 @@ public class ResourceTypeCacheConfigurationReaderImpl implements ResourceTypeCac
 	private PathAliasStore pathAliasStore;
 
 	@Override
+	public boolean hasConfigurationFor(SlingHttpServletRequest request) {
+		return hasConfigurationInOsgi(request) || hasConfigurationInJcr(request);
+	}
+
+	private boolean hasConfigurationInOsgi(SlingHttpServletRequest request) {
+		return resourceTypeCacheDefinitions.containsKey(request.getResource().getResourceType());
+	}
+
+	private boolean hasConfigurationInJcr(SlingHttpServletRequest request) {
+		Resource typeResource = getTypeResource(request);
+		Resource cacheResource = getCacheResource(request, typeResource);
+		return null != cacheResource;
+	}
+
+	private Resource getCacheResource(SlingHttpServletRequest request, Resource typeResource) {
+		return request.getResourceResolver().getResource(typeResource, CacheConstants.CACHE_PATH);
+	}
+
+	@Override
 	public ResourceTypeCacheConfiguration readComponentConfiguration(SlingHttpServletRequest request, int defaultTime) {
 		Resource requestedResource = request.getResource();
 
 		Resource typeResource = getTypeResource(request);
-		Resource cacheResource = request.getResourceResolver().getResource(typeResource, CacheConstants.CACHE_PATH);
+		Resource cacheResource = getCacheResource(request, typeResource);
 
-		ResourceTypeCacheConfiguration config = createConfiguration(requestedResource, cacheResource, defaultTime);
+		ResourceTypeCacheDefinition resourceTypeCacheDefinition
+				= findResourceTypeCacheDefinition(requestedResource, cacheResource, defaultTime);
+		ResourceTypeCacheConfiguration configuration = null;
 
-		if (typeResource != null) {
-			config.setResourceTypePath(typeResource.getPath());
+		if (null != resourceTypeCacheDefinition) {
+			configuration = readComponentConfiguration(requestedResource, resourceTypeCacheDefinition, defaultTime);
+			if (typeResource != null) {
+				configuration.setResourceTypePath(typeResource.getPath());
+			}
 		}
 
-		return config;
+		return configuration;
 	}
 
 	public void bindResourceTypeCacheDefinition(ResourceTypeCacheDefinition resourceTypeCacheDefinition) {
@@ -76,16 +100,6 @@ public class ResourceTypeCacheConfigurationReaderImpl implements ResourceTypeCac
 		resourceTypeCacheDefinitions.remove(resourceTypeCacheDefinition.getResourceType());
 	}
 
-	private ResourceTypeCacheConfiguration createConfiguration(
-			Resource requestedResource, Resource cacheResource, int defaultTime) {
-		ResourceTypeCacheDefinition resourceTypeCacheDefinition
-				= findResourceTypeCacheDefinition(requestedResource, cacheResource, defaultTime);
-
-		return null == resourceTypeCacheDefinition
-				? createDefaultResourceTypeCacheConfiguration(requestedResource, defaultTime)
-				: readComponentConfiguration(requestedResource, resourceTypeCacheDefinition, defaultTime);
-	}
-
 	private ResourceTypeCacheDefinition findResourceTypeCacheDefinition(
 			Resource requestedResource, Resource cacheResource, int defaultTime) {
 		ResourceTypeCacheDefinition resourceTypeCacheDefinition = null;
@@ -96,14 +110,6 @@ public class ResourceTypeCacheConfigurationReaderImpl implements ResourceTypeCac
 					= new JcrResourceTypeCacheDefinition(cacheResource, requestedResource, defaultTime);
 		}
 		return resourceTypeCacheDefinition;
-	}
-
-	private ResourceTypeCacheConfiguration createDefaultResourceTypeCacheConfiguration(
-			Resource requestedResource, int defaultTime) {
-		ResourceTypeCacheConfiguration config
-				= new ResourceTypeCacheConfiguration(requestedResource.getResourceType(), defaultTime);
-		config.addInvalidatePath(String.format(INVALIDATION_PATH, getPagePath(requestedResource.getPath())));
-		return config;
 	}
 
 	/**

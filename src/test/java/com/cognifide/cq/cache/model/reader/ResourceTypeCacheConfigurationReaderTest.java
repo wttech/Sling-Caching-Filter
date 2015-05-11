@@ -16,7 +16,7 @@ import static org.junit.Assert.assertThat;
 import org.junit.Rule;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Mockito;
+import static org.mockito.Mockito.when;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
@@ -77,35 +77,30 @@ public class ResourceTypeCacheConfigurationReaderTest {
 	public void shouldCreateCustomResourceTypeCachConfigurationWhenResourceTypeIsNotConfiguredInOsgiOrJcr() {
 		//given
 		setUpRequest();
-		Mockito.when(resourceResolver.getResource(RESOURCE_TYPE)).thenReturn(null);
+		when(resourceResolver.getResource(RESOURCE_TYPE)).thenReturn(null);
 
 		//when
 		ResourceTypeCacheConfiguration actual = testedObject.readComponentConfiguration(request, DEFAULT_TIME);
 
 		//then
-		assertThat(actual.isEnabled(), is(false));
-		assertThat(actual.getCacheLevel(), is(Integer.MIN_VALUE));
-		assertThat(actual.getResourceType(), is(RESOURCE_TYPE));
-		assertThat(actual.getResourceTypePath(), is(nullValue()));
-		assertThat(actual.getTime(), is(DEFAULT_TIME));
-		assertThat(actual.getInvalidatePaths().size(), is(1));
+		assertThat(actual, is(nullValue()));
 	}
 
 	private void setUpRequest() {
-		Mockito.when(request.getResource()).thenReturn(resource);
-		Mockito.when(resource.getResourceType()).thenReturn(RESOURCE_TYPE);
-		Mockito.when(resource.getPath()).thenReturn(RESOURCE_PATH);
-		Mockito.when(request.getResourceResolver()).thenReturn(resourceResolver);
+		when(request.getResource()).thenReturn(resource);
+		when(resource.getResourceType()).thenReturn(RESOURCE_TYPE);
+		when(resource.getPath()).thenReturn(RESOURCE_PATH);
+		when(request.getResourceResolver()).thenReturn(resourceResolver);
 	}
 
 	@Test
 	public void shouldCreateResourceTypeCachConfigurationWhenResourceTypeIsConfiguredInOsgi() {
 		//given
 		setUpRequest();
-		Mockito.when(resourceResolver.getResource(RESOURCE_TYPE)).thenReturn(null);
+		when(resourceResolver.getResource(RESOURCE_TYPE)).thenReturn(null);
 
 		setUpResourceTypeCacheDefinitionWithoutValidityTime();
-		Mockito.when(resourceTypeCacheDefinition.getValidityTimeInSeconds()).thenReturn(30);
+		when(resourceTypeCacheDefinition.getValidityTimeInSeconds()).thenReturn(30);
 
 		testedObject.bindResourceTypeCacheDefinition(resourceTypeCacheDefinition);
 
@@ -122,24 +117,22 @@ public class ResourceTypeCacheConfigurationReaderTest {
 	}
 
 	private void setUpResourceTypeCacheDefinitionWithoutValidityTime() {
-		Mockito.when(resourceTypeCacheDefinition.isEnabled()).thenReturn(true);
-		Mockito.when(resourceTypeCacheDefinition.getCacheLevel()).thenReturn(1);
-		Mockito.when(resourceTypeCacheDefinition.getResourceType()).thenReturn(RESOURCE_TYPE);
-		Mockito.when(resourceTypeCacheDefinition.isInvalidateOnSelf()).thenReturn(true);
-		Mockito.when(resourceTypeCacheDefinition.getInvalidateOnPaths())
-				.thenReturn(XML_CACHE_INVALIDATE_PATHS);
-		Mockito.when(resourceTypeCacheDefinition.getInvalidateOnReferencedFields())
-				.thenReturn(XML_CACHE_INVALIDATE_FIELDS);
+		when(resourceTypeCacheDefinition.isEnabled()).thenReturn(true);
+		when(resourceTypeCacheDefinition.getCacheLevel()).thenReturn(1);
+		when(resourceTypeCacheDefinition.getResourceType()).thenReturn(RESOURCE_TYPE);
+		when(resourceTypeCacheDefinition.isInvalidateOnSelf()).thenReturn(true);
+		when(resourceTypeCacheDefinition.getInvalidateOnPaths()).thenReturn(XML_CACHE_INVALIDATE_PATHS);
+		when(resourceTypeCacheDefinition.getInvalidateOnReferencedFields()).thenReturn(XML_CACHE_INVALIDATE_FIELDS);
 	}
 
 	@Test
 	public void shouldCreateResourceTypeCachConfigurationWhenResourceTypeIsConfiguredInOsgiWithDefaultTimeIfNotProvided() {
 		//given
 		setUpRequest();
-		Mockito.when(resourceResolver.getResource(RESOURCE_TYPE)).thenReturn(null);
+		when(resourceResolver.getResource(RESOURCE_TYPE)).thenReturn(null);
 
 		setUpResourceTypeCacheDefinitionWithoutValidityTime();
-		Mockito.when(resourceTypeCacheDefinition.getValidityTimeInSeconds()).thenReturn(null);
+		when(resourceTypeCacheDefinition.getValidityTimeInSeconds()).thenReturn(null);
 
 		testedObject.bindResourceTypeCacheDefinition(resourceTypeCacheDefinition);
 
@@ -159,11 +152,11 @@ public class ResourceTypeCacheConfigurationReaderTest {
 	public void shouldCreateResourceTypeCachConfigurationWhenResourceTypeIsConfiguredInJcr() {
 		//given
 		setUpRequest();
-		Mockito.when(resourceResolver.getResource("/apps/" + RESOURCE_TYPE)).thenReturn(typeResource);
-		Mockito.when(resourceResolver.getResource(typeResource, "cache")).thenReturn(cacheResource);
+		when(resourceResolver.getResource("/apps/" + RESOURCE_TYPE)).thenReturn(typeResource);
+		when(resourceResolver.getResource(typeResource, "cache")).thenReturn(cacheResource);
 		setUpCacheResourceWithoutValidityTime();
 
-		Mockito.when(valueMap.get(CacheConstants.CACHE_VALIDITY_TIME, DEFAULT_TIME)).thenReturn(30);
+		when(valueMap.get(CacheConstants.CACHE_VALIDITY_TIME, DEFAULT_TIME)).thenReturn(30);
 
 		//when
 		ResourceTypeCacheConfiguration actual = testedObject.readComponentConfiguration(request, DEFAULT_TIME);
@@ -181,11 +174,11 @@ public class ResourceTypeCacheConfigurationReaderTest {
 	public void shouldCreateResourceTypeCachConfigurationWhenResourceTypeIsConfiguredInJcrWithDefaultTimeIfNotProvided() {
 		//given
 		setUpRequest();
-		Mockito.when(resourceResolver.getResource("/apps/" + RESOURCE_TYPE)).thenReturn(typeResource);
-		Mockito.when(resourceResolver.getResource(typeResource, "cache")).thenReturn(cacheResource);
+		when(resourceResolver.getResource("/apps/" + RESOURCE_TYPE)).thenReturn(typeResource);
+		when(resourceResolver.getResource(typeResource, "cache")).thenReturn(cacheResource);
 		setUpCacheResourceWithoutValidityTime();
 
-		Mockito.when(valueMap.get(CacheConstants.CACHE_VALIDITY_TIME, DEFAULT_TIME)).thenReturn(null);
+		when(valueMap.get(CacheConstants.CACHE_VALIDITY_TIME, DEFAULT_TIME)).thenReturn(null);
 
 		//when
 		ResourceTypeCacheConfiguration actual = testedObject.readComponentConfiguration(request, DEFAULT_TIME);
@@ -200,12 +193,12 @@ public class ResourceTypeCacheConfigurationReaderTest {
 	}
 
 	private void setUpCacheResourceWithoutValidityTime() {
-		Mockito.when(resourceResolver.getResource(typeResource, CacheConstants.CACHE_ENABLED)).thenReturn(cacheResource);
-		Mockito.when(cacheResource.adaptTo(ValueMap.class)).thenReturn(valueMap);
-		Mockito.when(valueMap.get(CacheConstants.CACHE_ENABLED, false)).thenReturn(true);
-		Mockito.when(valueMap.get(CacheConstants.CACHE_LEVEL, Integer.MIN_VALUE)).thenReturn(1);
-		Mockito.when(valueMap.get(CacheConstants.CACHE_INVALIDATE_ON_SELF, true)).thenReturn(true);
-		Mockito.when(valueMap.get(CacheConstants.CACHE_INVALIDATE_FIELDS)).thenReturn(XML_CACHE_INVALIDATE_PATHS);
-		Mockito.when(valueMap.get(CacheConstants.CACHE_INVALIDATE_PATHS)).thenReturn(XML_CACHE_INVALIDATE_FIELDS);
+		when(resourceResolver.getResource(typeResource, CacheConstants.CACHE_ENABLED)).thenReturn(cacheResource);
+		when(cacheResource.adaptTo(ValueMap.class)).thenReturn(valueMap);
+		when(valueMap.get(CacheConstants.CACHE_ENABLED, false)).thenReturn(true);
+		when(valueMap.get(CacheConstants.CACHE_LEVEL, Integer.MIN_VALUE)).thenReturn(1);
+		when(valueMap.get(CacheConstants.CACHE_INVALIDATE_ON_SELF, true)).thenReturn(true);
+		when(valueMap.get(CacheConstants.CACHE_INVALIDATE_FIELDS)).thenReturn(XML_CACHE_INVALIDATE_PATHS);
+		when(valueMap.get(CacheConstants.CACHE_INVALIDATE_PATHS)).thenReturn(XML_CACHE_INVALIDATE_FIELDS);
 	}
 }
