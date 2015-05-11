@@ -1,6 +1,6 @@
 package com.cognifide.cq.cache.filter;
 
-import com.cognifide.cq.cache.model.PathAliasStoreImpl;
+import com.cognifide.cq.cache.model.alias.PathAliasStoreImpl;
 import com.cognifide.cq.cache.model.ResourceTypeCacheConfiguration;
 import com.cognifide.cq.cache.model.reader.ResourceTypeCacheConfigurationReader;
 import com.cognifide.cq.cache.refresh.jcr.FilterJcrRefreshPolicy;

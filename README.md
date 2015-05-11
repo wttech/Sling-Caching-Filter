@@ -73,6 +73,7 @@ Please notice the obligatory cog namespace definition in the second line.
 OSGi console allows to modify the following properties:
 
 * Enabled - enables/disables cache filter
+* Path aliases - define aliases for paths, syntax ```$<alias name>|<path 1>|<path 2>|...```, where ```$``` is a mandatory character before alias name, and ```|``` is a separator between paths
 * Memory - store cache in memory/on disk
 * Capacity - cache capacity
 * Algorithm - cache entry removal algorithm

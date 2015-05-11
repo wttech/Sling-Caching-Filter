@@ -4,7 +4,7 @@ import com.cognifide.cq.cache.definition.ResourceTypeCacheDefinition;
 import com.cognifide.cq.cache.definition.jcr.JcrResourceTypeCacheDefinition;
 import com.cognifide.cq.cache.model.CacheConstants;
 import com.cognifide.cq.cache.model.InvalidationPathUtil;
-import com.cognifide.cq.cache.model.PathAliasStore;
+import com.cognifide.cq.cache.model.alias.PathAliasStore;
 import com.cognifide.cq.cache.model.ResourceTypeCacheConfiguration;
 import java.util.ArrayList;
 import java.util.List;
