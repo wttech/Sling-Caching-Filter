@@ -1,319 +1,300 @@
 package com.cognifide.cq.cache.filter;
 
-import com.cognifide.cq.cache.definition.ResourceTypeCacheDefinition;
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertFalse;
-import static junit.framework.Assert.assertNotNull;
-import static junit.framework.Assert.assertNull;
-import static junit.framework.Assert.assertTrue;
-import static org.easymock.EasyMock.createMock;
-import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.notNull;
-import static org.easymock.EasyMock.replay;
-import static org.easymock.EasyMock.verify;
-
-import java.io.ByteArrayOutputStream;
+import com.cognifide.cq.cache.model.PathAliasStoreImpl;
+import com.cognifide.cq.cache.model.ResourceTypeCacheConfiguration;
+import com.cognifide.cq.cache.model.reader.ResourceTypeCacheConfigurationReader;
+import com.cognifide.cq.cache.refresh.jcr.FilterJcrRefreshPolicy;
+import com.cognifide.cq.cache.refresh.jcr.JcrEventsService;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.Dictionary;
 import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import javax.servlet.FilterChain;
 import javax.servlet.FilterConfig;
+import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
-import javax.servlet.http.HttpServletResponse;
-
-import org.junit.After;
-import org.junit.Before;
+import org.apache.commons.lang.StringUtils;
+import org.apache.sling.api.SlingHttpServletRequest;
+import org.apache.sling.api.SlingHttpServletResponse;
+import org.apache.sling.api.request.RequestPathInfo;
+import org.apache.sling.api.resource.Resource;
+import org.apache.sling.api.resource.ResourceResolver;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.core.IsNull.nullValue;
+import static org.junit.Assert.assertThat;
+import org.junit.Rule;
 import org.junit.Test;
-
-import com.cognifide.cq.cache.model.ResourceResolverStub;
-import com.cognifide.cq.cache.refresh.jcr.JcrEventListener;
-import com.cognifide.cq.cache.refresh.jcr.JcrEventsService;
-import com.cognifide.cq.cache.test.utils.ComponentContextStub;
-import com.cognifide.cq.cache.test.utils.ReflectionHelper;
-import com.cognifide.cq.cache.test.utils.ResourceStub;
-import com.cognifide.cq.cache.test.utils.ServletContextStub;
-import com.cognifide.cq.cache.test.utils.SlingHttpServletRequestStub;
-import com.opensymphony.oscache.base.Cache;
-import com.opensymphony.oscache.base.EntryRefreshPolicy;
-import com.opensymphony.oscache.base.NeedsRefreshException;
-import com.opensymphony.oscache.base.events.CacheEventListener;
-import com.opensymphony.oscache.web.ServletCacheAdministrator;
+import org.junit.rules.ExpectedException;
+import org.mockito.InjectMocks;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.eq;
+import org.mockito.Mock;
+import static org.mockito.Mockito.atLeast;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.when;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
+import org.osgi.service.component.ComponentContext;
 
 /**
  * @author Bartosz Rudnicki
  */
 public class ComponentCacheFilterTest {
 
-	private ComponentCacheFilterTestWrapper filter;
+	private static final String CACHE_ADMINISTRATORS_KEY = "__oscache_admins";
 
-	private ServletContextStub servletContext;
+	private static final String CACHE_CONFIG_DURATION_PROPERTY_NAME = "cache.config.duration";
 
-	private ServletCacheAdministrator cacheAdministratorMock;
+	private static final String CACHE_CONFIG_ENABLED_PROPERTY_NAME = "cache.config.enabled";
 
-	private FilterChain filterChainMock;
+	private static final int CACHE_DURATION = 10;
 
-	private SlingHttpServletRequestStub slingHttpServletRequest;
+	@Mock
+	private FilterConfig filterConfig;
 
-	private ComponentContextStub componentContext;
+	@Mock
+	private ComponentContext componentContext;
 
-	private ResourceResolverStub resourceResolver;
+	@Mock
+	private Dictionary dictionary;
 
-	@Before
-	public void setUp() {
-		filter = new ComponentCacheFilterTestWrapper();
-		servletContext = new ServletContextStub();
-		cacheAdministratorMock = createMock(ServletCacheAdministrator.class);
-		servletContext.setAttribute(ServletContextStub.CACHE_ADMIN_KEY, cacheAdministratorMock);
-		filterChainMock = createMock(FilterChain.class);
-		slingHttpServletRequest = new SlingHttpServletRequestStub();
-		componentContext = new ComponentContextStub();
+	@Mock
+	private ServletContext servletContext;
 
-		resourceResolver = new ResourceResolverStub();
-		slingHttpServletRequest.setResourceResolver(resourceResolver);
-	}
+	@Mock
+	private SlingHttpServletRequest request;
 
-	@After
-	public void tearDown() {
-	}
+	@Mock
+	private ServletRequest otherRequest;
 
-	private void initFilter() {
-		FilterConfig filterConfigMock = createMock(FilterConfig.class);
-		expect(filterConfigMock.getServletContext()).andReturn(servletContext);
-		replay(filterConfigMock);
-		filter.init(filterConfigMock);
-		verify(filterConfigMock);
-	}
+	@Mock
+	private SlingHttpServletResponse response;
 
-	private void activateFilter(Boolean enabled) {
-		activateFilter(enabled, null);
-	}
+	@Mock
+	private Resource resource;
 
-	private void activateFilter(Boolean enabled, Integer duration) {
-		if (enabled != null) {
-			componentContext.put("cache.config.enabled", enabled);
-		}
-		if (duration != null) {
-			componentContext.put("cache.config.duration", duration);
-		}
-		filter.activate(componentContext);
+	@Mock
+	private ResourceResolver resourceResolver;
+
+	@Mock
+	private RequestPathInfo requestPathInfo;
+
+	@Mock
+	private PrintWriter writer;
+
+	@Mock
+	private FilterChain filterChain;
+
+	@Mock
+	private JcrEventsService jcrEventsService;
+
+	@Mock
+	private PathAliasStoreImpl pathAliasStore;
+
+	@Mock
+	private ResourceTypeCacheConfigurationReader configurationReader;
+
+	@Mock
+	private ResourceTypeCacheConfiguration resourceTypeCacheConfiguration;
+
+	@InjectMocks
+	private ComponentCacheFilter testedObject = new ComponentCacheFilter();
+
+	@Rule
+	public MockitoRule mockitoRule = MockitoJUnit.rule();
+
+	@Rule
+	public ExpectedException exception = ExpectedException.none();
+
+	@Test
+	public void shouldInitializeAndHaveCacheDisabledWhenFilterNotActivated() {
+		//given
+		setUpFilterConfig();
+
+		//when
+		testedObject.init(filterConfig);
+
+		//then
+		verify(filterConfig).getServletContext();
+		verify(servletContext).setAttribute(ComponentCacheFilter.SERVLET_CONTEXT_CACHE_ENABLED, Boolean.FALSE);
 	}
 
 	@Test
-	public void testInit() throws IllegalAccessException, NoSuchFieldException {
-		initFilter();
-		assertNotNull(servletContext.getAttribute(ComponentCacheFilter.SERVLET_CONTEXT_CACHE_ENABLED));
-		assertFalse((Boolean) servletContext.getAttribute(ComponentCacheFilter.SERVLET_CONTEXT_CACHE_ENABLED));
-		assertNull(servletContext.getAttribute(ComponentCacheFilter.SERVLET_CONTEXT_CACHE_DURATION));
+	public void shouldInitializeAndHaveCacheEnabledWhenFilterActivated() {
+		//given
+		setUpFilterConfig();
+		setUpComponentContextWithEnabledSettings();
 
-		activateFilter(true, 10);
+		//when
+		testedObject.activate(componentContext);
+		testedObject.init(filterConfig);
 
-		initFilter();
-		assertNotNull(servletContext.getAttribute(ComponentCacheFilter.SERVLET_CONTEXT_CACHE_ENABLED));
-		assertTrue((Boolean) servletContext.getAttribute(ComponentCacheFilter.SERVLET_CONTEXT_CACHE_ENABLED));
-		assertNotNull(servletContext.getAttribute(ComponentCacheFilter.SERVLET_CONTEXT_CACHE_DURATION));
-		assertEquals(10, servletContext.getAttribute(ComponentCacheFilter.SERVLET_CONTEXT_CACHE_DURATION));
+		//then
+		verify(filterConfig).getServletContext();
+		verify(servletContext, times(2)).setAttribute(ComponentCacheFilter.SERVLET_CONTEXT_CACHE_ENABLED, Boolean.TRUE);
+		verify(servletContext, times(2))
+				.setAttribute(ComponentCacheFilter.SERVLET_CONTEXT_CACHE_DURATION, CACHE_DURATION);
+	}
+
+	private void setUpFilterConfig() {
+		when(filterConfig.getServletContext()).thenReturn(servletContext);
+		when(servletContext.getAttribute(CACHE_ADMINISTRATORS_KEY)).thenReturn(new HashMap<Object, Object>(2));
+	}
+
+	private void setUpComponentContextWithEnabledSettings() {
+		when(componentContext.getProperties()).thenReturn(dictionary);
+		when(dictionary.get(CACHE_CONFIG_ENABLED_PROPERTY_NAME)).thenReturn(true);
+		when(dictionary.get(CACHE_CONFIG_DURATION_PROPERTY_NAME)).thenReturn(CACHE_DURATION);
 	}
 
 	@Test
-	public void testDestroy() {
-		initFilter();
+	public void shouldDisableCacheForServletContextWhenFilterIsDisabled() {
+		//given
+		setUpComponentContextWithDisabledSettings();
 
-		Map<Object, Object> admins = new HashMap<Object, Object>();
-		servletContext.setAttribute(ServletContextStub.CACHE_ADMINS_LIST_KEY, admins);
+		//when
+		testedObject.activate(componentContext);
 
-		assertNotNull(servletContext.getAttribute(ServletContextStub.CACHE_ADMINS_LIST_KEY));
-		filter.destroy();
-		assertNull(servletContext.getAttribute(ServletContextStub.CACHE_ADMINS_LIST_KEY));
+		//then
+		verify(servletContext).setAttribute("com.cognifide.cq.cache.filter.ComponentCacheFilter.cache.enabled", false);
+	}
+
+	private void setUpComponentContextWithDisabledSettings() {
+		when(componentContext.getProperties()).thenReturn(dictionary);
+		when(dictionary.get(CACHE_CONFIG_ENABLED_PROPERTY_NAME)).thenReturn(false);
 	}
 
 	@Test
-	public void testActivate() {
-		initFilter();
-		activateFilter(true, 121);
-		assertNotNull(servletContext.getAttribute(ComponentCacheFilter.SERVLET_CONTEXT_CACHE_ENABLED));
-		assertTrue((Boolean) servletContext.getAttribute(ComponentCacheFilter.SERVLET_CONTEXT_CACHE_ENABLED));
-		assertEquals(121, servletContext.getAttribute(ComponentCacheFilter.SERVLET_CONTEXT_CACHE_DURATION));
+	public void shouldRemoveCachedAdministratorsKeysFromServletContextOnDestroy() {
+		//given
+		setUpFilterConfig();
+		setUpComponentContextWithEnabledSettings();
+
+		//when
+		testedObject.activate(componentContext);
+		testedObject.init(filterConfig);
+		testedObject.destroy();
+
+		//then
+		verify(servletContext, atLeast(1)).getAttribute(CACHE_ADMINISTRATORS_KEY);
+		verify(servletContext).removeAttribute(CACHE_ADMINISTRATORS_KEY);
 	}
 
 	@Test
-	public void testActivateNoInit() {
-		activateFilter(false);
-		assertNull(servletContext.getAttribute(ComponentCacheFilter.SERVLET_CONTEXT_CACHE_ENABLED));
+	public void shouldCacheResourceIfConfigurationIsEnabled() throws IOException, ServletException {
+		//given
+		setUpFilterConfig();
+		setUpComponentContextWithEnabledSettings();
+		setUpConfigurationReaderWithCachedConfigurationEnabled();
+		setUpRequest();
+		setUpResponse();
+
+		//when
+		testedObject.init(filterConfig);
+		testedObject.activate(componentContext);
+		testedObject.doFilter(request, response, filterChain);
+
+		//then
+		verify(filterChain).doFilter(eq(request), any(CacheHttpServletResponseWrapper.class));
+		verify(jcrEventsService).addEventListener(any(FilterJcrRefreshPolicy.class));
+		verify(writer).write(anyString());
+	}
+
+	private void setUpResponse() throws IOException {
+		when(response.getCharacterEncoding()).thenReturn("utf-8");
+		when(response.getWriter()).thenReturn(writer);
+	}
+
+	private void setUpConfigurationReaderWithCachedConfigurationEnabled() {
+		when(configurationReader.readComponentConfiguration(request, CACHE_DURATION))
+				.thenReturn(resourceTypeCacheConfiguration);
+		when(resourceTypeCacheConfiguration.isEnabled()).thenReturn(true);
 	}
 
 	@Test
-	public void testDeactivate() throws IllegalAccessException, NoSuchFieldException {
-		initFilter();
+	public void shouldNotCacheResourceIfConfigurationIsDisabled() throws IOException, ServletException {
+		//given
+		setUpFilterConfig();
+		setUpComponentContextWithEnabledSettings();
+		setUpConfigurationReaderWithCachedConfigurationDisabled();
+		setUpRequest();
 
-		Map<Object, Object> admins = new HashMap<Object, Object>();
-		servletContext.setAttribute(ServletContextStub.CACHE_ADMINS_LIST_KEY, admins);
+		//when
+		testedObject.init(filterConfig);
+		testedObject.activate(componentContext);
+		testedObject.doFilter(request, response, filterChain);
 
-		JcrEventsService.addEventListener(createMock(JcrEventListener.class));
-		List<JcrEventListener> jcrEventListenerList = ReflectionHelper.get(JcrEventsService.class,
-				"listeners");
-		assertEquals(1, jcrEventListenerList.size());
+		//then
+		verify(filterChain).doFilter(request, response);
+	}
 
-		assertNotNull(servletContext.getAttribute(ServletContextStub.CACHE_ADMINS_LIST_KEY));
+	private void setUpConfigurationReaderWithCachedConfigurationDisabled() {
+		when(configurationReader.readComponentConfiguration(request, CACHE_DURATION))
+				.thenReturn(resourceTypeCacheConfiguration);
+		when(resourceTypeCacheConfiguration.isEnabled()).thenReturn(false);
+	}
 
-		filter.deactivate(null);
-
-		assertNull(servletContext.getAttribute(ServletContextStub.CACHE_ADMINS_LIST_KEY));
-		assertTrue(jcrEventListenerList.isEmpty());
+	private void setUpRequest() {
+		when(request.getRequestPathInfo()).thenReturn(requestPathInfo);
+		when(requestPathInfo.getSelectorString()).thenReturn(StringUtils.EMPTY);
+		when(request.getResourceResolver()).thenReturn(resourceResolver);
+		when(resourceResolver.getResource("/resource/type")).thenReturn(resource);
+		when(request.getResource()).thenReturn(resource);
+		when(resource.getResourceType()).thenReturn("/resource/type");
+		when(resource.getPath()).thenReturn("/path/to/resource/jcr:content/resource");
 	}
 
 	@Test
-	public void testDoFilterContentInCache() throws IOException, ServletException, NeedsRefreshException {
-		ResourceStub resource = new ResourceStub();
-		slingHttpServletRequest.setResource(resource);
-		resource.setPath("/content/resource/path");
-		resource.setResourceType("/apps/resource/type");
+	public void shouldNotExecuteWhenRequestIsNotSlingHttpServletRequestInstance() throws IOException, ServletException {
+		//given
+		setUpFilterConfig();
+		setUpComponentContextWithEnabledSettings();
 
-		mockResourceTypeCacheDefinition("/apps/resource/type");
+		//when
+		testedObject.init(filterConfig);
+		testedObject.activate(componentContext);
+		testedObject.doFilter(otherRequest, response, filterChain);
 
-		initFilter();
-		activateFilter(true, 10);
-
-		ServletResponse response = createMock(ServletResponse.class);
-
-		Cache cache = createMock(Cache.class);
-
-		ByteArrayOutputStream baos = new ByteArrayOutputStream();
-		baos.write("helloWorld".getBytes());
-
-		expect(cacheAdministratorMock.getAppScopeCache(servletContext)).andReturn(cache);
-		expect(cache.getFromCache("/content/resource/path")).andReturn(baos);
-
-		PrintWriter writer = createMock(PrintWriter.class);
-		expect(response.getCharacterEncoding()).andReturn("UTF-8");
-		expect(response.getWriter()).andReturn(writer);
-
-		writer.write("helloWorld");
-
-		replay(filterChainMock, response, cacheAdministratorMock, cache, writer);
-		filter.doFilter(slingHttpServletRequest, response, filterChainMock);
-		verify(filterChainMock, response, cacheAdministratorMock, cache, writer);
+		//then
+		verifyZeroInteractions(otherRequest);
+		verify(filterChain).doFilter(otherRequest, response);
 	}
 
 	@Test
-	public void testDoFilterContentNotInCache() throws IOException, ServletException, NeedsRefreshException {
-		ResourceStub resource = new ResourceStub();
-		slingHttpServletRequest.setResource(resource);
-		resource.setPath("/content/resource/path");
-		resource.setResourceType("/apps/resource/type");
+	public void shouldNotExecuteWhenFitlerIsDiabled() throws IOException, ServletException {
+		//given
+		setUpFilterConfig();
+		setUpComponentContextWithDisabledSettings();
 
-		mockResourceTypeCacheDefinition("/apps/resource/type");
+		//when
+		testedObject.init(filterConfig);
+		testedObject.activate(componentContext);
+		testedObject.doFilter(request, response, filterChain);
 
-		initFilter();
-		activateFilter(true, 10);
-
-		HttpServletResponse response = createMock(HttpServletResponse.class);
-
-		Cache cache = createMock(Cache.class);
-
-		ByteArrayOutputStream baos = new ByteArrayOutputStream();
-
-		expect(cacheAdministratorMock.getAppScopeCache(servletContext)).andReturn(cache);
-
-		expect(cache.getFromCache("/content/resource/path")).andThrow(new NeedsRefreshException(baos));
-
-		FilterChain filterChainStub = new FilterChain() {
-			@Override
-			public void doFilter(ServletRequest request, ServletResponse response) throws IOException,
-					ServletException {
-				assertEquals(slingHttpServletRequest, request);
-				response.getWriter().write("helloWorld");
-			}
-		};
-
-		cache.putInCache((String) notNull(), notNull(), (EntryRefreshPolicy) notNull());
-		cache.addCacheEventListener((CacheEventListener) notNull());
-
-		PrintWriter writer = createMock(PrintWriter.class);
-		expect(response.getCharacterEncoding()).andReturn("UTF-8");
-		expect(response.getCharacterEncoding()).andReturn("UTF-8");
-		expect(response.getWriter()).andReturn(writer);
-
-		writer.write("helloWorld");
-
-		replay(filterChainMock, response, cacheAdministratorMock, cache, writer);
-		filter.doFilter(slingHttpServletRequest, response, filterChainStub);
-		verify(filterChainMock, response, cacheAdministratorMock, cache, writer);
-	}
-
-	private void mockResourceTypeCacheDefinition(String resourceType) {
-		ResourceTypeCacheDefinition resourceTypeCacheDefinitionMock = createMock(ResourceTypeCacheDefinition.class);
-		expect(resourceTypeCacheDefinitionMock.getResourceType()).andReturn(resourceType).atLeastOnce();
-		expect(resourceTypeCacheDefinitionMock.getValidityTimeInSeconds()).andReturn(0);
-		expect(resourceTypeCacheDefinitionMock.getCacheLevel()).andReturn(-1);
-		expect(resourceTypeCacheDefinitionMock.isEnabled()).andReturn(true);
-		expect(resourceTypeCacheDefinitionMock.isInvalidateOnSelf()).andReturn(true);
-		expect(resourceTypeCacheDefinitionMock.getInvalidateOnReferencedFields()).andReturn(new String[0]);
-		expect(resourceTypeCacheDefinitionMock.getInvalidateOnPaths()).andReturn(new String[0]);
-		replay(resourceTypeCacheDefinitionMock);
-		filter.bindResourceTypeCacheDefinition(resourceTypeCacheDefinitionMock);
+		//then
+		verify(request, never()).getResource();
+		verify(filterChain).doFilter(request, response);
 	}
 
 	@Test
-	public void testDoFilterCacheConfigDisabled() throws IOException, ServletException {
-		ResourceStub resource = new ResourceStub();
-		slingHttpServletRequest.setResource(resource);
-		resource.setPath("/content/resource/path");
-		resource.setResourceType("/apps/resource/type");
-
-		initFilter();
-		activateFilter(true, 10);
-
-		ServletResponse response = createMock(ServletResponse.class);
-
-		filterChainMock.doFilter(slingHttpServletRequest, response);
-
-		replay(filterChainMock, response);
-		filter.doFilter(slingHttpServletRequest, response, filterChainMock);
-		verify(filterChainMock, response);
+	public void createCacheKeyShouldThrowUnsupportedOperationException() {
+		//given
+		exception.expect(UnsupportedOperationException.class);
+		//then
+		testedObject.createCacheKey(null, null, null);
 	}
 
 	@Test
-	public void testDoFilterDisabled() throws IOException, Throwable {
-		initFilter();
-		activateFilter(false);
+	public void createCacheGroupsShouldReturnNull() {
+		//when
+		String[] actual = testedObject.createCacheGroups(request, null, null);
 
-		ServletRequest request = createMock(ServletRequest.class);
-		ServletResponse response = createMock(ServletResponse.class);
-
-		filterChainMock.doFilter(request, response);
-
-		replay(filterChainMock, request, response);
-		filter.doFilter(request, response, filterChainMock);
-		verify(filterChainMock, request, response);
-	}
-
-	@Test
-	public void testDoFilterNoHttpRequest() throws IOException, Throwable {
-		initFilter();
-		activateFilter(true);
-
-		ServletRequest request = createMock(ServletRequest.class);
-		ServletResponse response = createMock(ServletResponse.class);
-
-		filterChainMock.doFilter(request, response);
-
-		replay(filterChainMock, request, response);
-		filter.doFilter(request, response, filterChainMock);
-		verify(filterChainMock, request, response);
-	}
-
-	@Test(expected = UnsupportedOperationException.class)
-	public void testCreateCacheKey() {
-		filter.createCacheKey(null, null, null);
-	}
-
-	@Test
-	public void testCreateCacheGroups() {
-		assertNull(filter.createCacheGroups(null, null, null));
+		//then
+		assertThat(actual, is(nullValue()));
 	}
 }

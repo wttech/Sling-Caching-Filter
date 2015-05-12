@@ -139,6 +139,12 @@ public class ComponentCacheFilter implements Filter, ICacheKeyProvider, ICacheGr
 			+ ".cache.duration";
 
 	@Reference
+	private JcrEventsService jcrEventsService;
+
+	@Reference
+	private PathAliasStore pathAliasStore;
+
+	@Reference
 	private ResourceTypeCacheConfigurationReader configurationReader;
 
 	// Properties read from configuration
@@ -235,7 +241,7 @@ public class ComponentCacheFilter implements Filter, ICacheKeyProvider, ICacheGr
 	protected void deactivate(ComponentContext context) {
 		log.info("deactivate " + getClass());
 		ServletCacheAdministrator.destroyInstance(servletContext);
-		JcrEventsService.clearEventListeners();
+		jcrEventsService.clearEventListeners();
 	}
 
 	/**
@@ -268,7 +274,6 @@ public class ComponentCacheFilter implements Filter, ICacheKeyProvider, ICacheGr
 		duration = OsgiUtil.toInteger(readProperty(context, PROPERTY_DURATION), DEFAULT_DURATION);
 
 		Set<PathAlias> aliases = pathAliasReader.readAliases(aliasesStrings);
-		PathAliasStore pathAliasStore = PathAliasStore.getInstance();
 		pathAliasStore.addAliases(aliases);
 
 		configProperties = new Properties();
@@ -294,6 +299,7 @@ public class ComponentCacheFilter implements Filter, ICacheKeyProvider, ICacheGr
 	@Override
 	public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
 			throws IOException, ServletException {
+
 		if (enabled) {
 			if (request instanceof SlingHttpServletRequest) {
 				SlingHttpServletRequest slingHttpServletRequest = (SlingHttpServletRequest) request;
@@ -305,7 +311,7 @@ public class ComponentCacheFilter implements Filter, ICacheKeyProvider, ICacheGr
 					Resource resource = slingHttpServletRequest.getResource();
 					if (log.isInfoEnabled()) {
 						log.info("filtering path=[{" + resource.getPath() + "}],resourceType=[{" + resource.getResourceType()
-								+ "}],shouldFilter=[{" + cacheConfiguration.isEnabled() + "}]");
+								+ "}],shouldFilter=[{true}]");
 					}
 
 					byte[] result = getResult(slingHttpServletRequest, response, chain, cacheConfiguration);
@@ -354,7 +360,7 @@ public class ComponentCacheFilter implements Filter, ICacheKeyProvider, ICacheGr
 			cacheResponse.getWriter().flush();
 			result = cacheResponse.getContent();
 
-			FilterJcrRefreshPolicy refreshPolicy = new FilterJcrRefreshPolicy(generatedKey, cacheConfiguration);
+			FilterJcrRefreshPolicy refreshPolicy = new FilterJcrRefreshPolicy(jcrEventsService, key, cacheConfiguration);
 			try {
 				cache.putInCache(generatedKey, result, refreshPolicy);
 			} finally {
@@ -362,7 +368,7 @@ public class ComponentCacheFilter implements Filter, ICacheKeyProvider, ICacheGr
 				SilentRemovalNotificator.notifyListeners(cache);
 			}
 			cache.addCacheEventListener(refreshPolicy);
-			JcrEventsService.addEventListener(refreshPolicy);
+			jcrEventsService.addEventListener(refreshPolicy);
 		}
 
 		return result.toByteArray();

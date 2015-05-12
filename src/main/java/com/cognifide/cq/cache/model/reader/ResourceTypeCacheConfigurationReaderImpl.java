@@ -4,6 +4,7 @@ import com.cognifide.cq.cache.definition.ResourceTypeCacheDefinition;
 import com.cognifide.cq.cache.definition.jcr.JcrResourceTypeCacheDefinition;
 import com.cognifide.cq.cache.model.CacheConstants;
 import com.cognifide.cq.cache.model.InvalidationPathUtil;
+import com.cognifide.cq.cache.model.PathAliasStore;
 import com.cognifide.cq.cache.model.ResourceTypeCacheConfiguration;
 import java.util.ArrayList;
 import java.util.List;
@@ -43,6 +44,9 @@ public class ResourceTypeCacheConfigurationReaderImpl implements ResourceTypeCac
 			strategy = ReferenceStrategy.EVENT)
 	private final ConcurrentMap<String, ResourceTypeCacheDefinition> resourceTypeCacheDefinitions
 			= new ConcurrentHashMap<String, ResourceTypeCacheDefinition>(8);
+
+	@Reference
+	private PathAliasStore pathAliasStore;
 
 	@Override
 	public ResourceTypeCacheConfiguration readComponentConfiguration(SlingHttpServletRequest request, int defaultTime) {
@@ -133,7 +137,7 @@ public class ResourceTypeCacheConfigurationReaderImpl implements ResourceTypeCac
 	}
 
 	private List<String> getCustomPathInvalidation(ResourceTypeCacheDefinition resourceTypeCacheDefinition) {
-		return InvalidationPathUtil.getInvalidationPaths(resourceTypeCacheDefinition.getInvalidateOnPaths());
+		return InvalidationPathUtil.getInvalidationPaths(pathAliasStore, resourceTypeCacheDefinition.getInvalidateOnPaths());
 	}
 
 	private List<String> getReferenceFieldInvalidation(

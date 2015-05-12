@@ -11,8 +11,8 @@ public class FilterJcrRefreshPolicy extends JcrRefreshPolicy {
 
 	private static final long serialVersionUID = -8888494251459418367L;
 
-	public FilterJcrRefreshPolicy(String cacheEntryKey, ResourceTypeCacheConfiguration configuration) {
-		super(cacheEntryKey, configuration.getTime());
+	public FilterJcrRefreshPolicy(JcrEventsService jcrEventsService, String cacheEntryKey, ResourceTypeCacheConfiguration configuration) {
+		super(jcrEventsService, cacheEntryKey, configuration.getTime());
 		this.invalidatePaths.addAll(configuration.getInvalidatePaths());
 		this.invalidatePaths.add(Pattern.compile(configuration.getResourceTypePath() + ".*"));
 	}

@@ -1,60 +1,65 @@
 package com.cognifide.cq.cache.refresh.jcr;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.observation.Event;
 import javax.jcr.observation.EventIterator;
 import javax.jcr.observation.EventListener;
+import org.apache.commons.lang.StringUtils;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
+import org.apache.felix.scr.annotations.Deactivate;
+import org.apache.felix.scr.annotations.Reference;
+import org.apache.felix.scr.annotations.Service;
 import org.apache.sling.jcr.api.SlingRepository;
-import org.osgi.service.component.ComponentContext;
 
-@Component
+@Component(immediate = true)
+@Service(JcrEventsService.class)
 public class JcrEventsService implements EventListener {
 
 	private static final Log LOG = LogFactory.getLog(JcrEventsService.class);
 
-	private static final List<JcrEventListener> listeners = Collections
-			.synchronizedList(new ArrayList<JcrEventListener>());
-
 	public static final int ALL_TYPES = Event.NODE_ADDED | Event.NODE_REMOVED | Event.PROPERTY_ADDED
 			| Event.PROPERTY_CHANGED | Event.PROPERTY_REMOVED;
 
-	public static void addEventListener(JcrEventListener listener) {
-		listeners.add(listener);
-	}
-
-	public static void removeEventListener(JcrEventListener listener) {
-		listeners.remove(listener);
-	}
-
-	public static void clearEventListeners() {
-		listeners.clear();
-	}
+	private final List<JcrEventListener> listeners = new CopyOnWriteArrayList<JcrEventListener>();
 
 	private Session admin;
 
 	/**
 	 * Sling repo.
-	 * 
+	 *
 	 * @scr.reference
 	 */
+	@Reference
 	private SlingRepository repository;
+
+	public void addEventListener(JcrEventListener listener) {
+		listeners.add(listener);
+	}
+
+	public void removeEventListener(JcrEventListener listener) {
+		listeners.remove(listener);
+	}
+
+	public void clearEventListeners() {
+		listeners.clear();
+	}
 
 	/**
 	 * Handles OSGi activation.
-	 * 
-	 * @param context OSGi component context
+	 *
+	 * @throws javax.jcr.RepositoryException
 	 */
-	protected void activate(ComponentContext context) throws RepositoryException {
-		LOG.info("activate");
+	@Activate
+	public void activate() throws RepositoryException {
+		LOG.info("Activating Sling Caching Filter jcr events service");
 		this.admin = repository.loginAdministrative(null);
 		this.admin.getWorkspace().getObservationManager()
 				.addEventListener(this, ALL_TYPES, "/", true, null, null, false);
@@ -62,10 +67,10 @@ public class JcrEventsService implements EventListener {
 
 	/**
 	 * Handles OSGi deactivation.
-	 * 
-	 * @param context OSGi component context
+	 *
 	 */
-	protected void deactivate(ComponentContext context) {
+	@Deactivate
+	public void deactivate() {
 		if (admin != null) {
 			try {
 				admin.getWorkspace().getObservationManager().removeEventListener(this);
@@ -88,29 +93,27 @@ public class JcrEventsService implements EventListener {
 			try {
 				String path = event.getPath();
 
-				// all of this to only get rid of 'duplicate' events
-				int index = path.indexOf("/jcr:content");
-				if (index > 0) {
-					path = path.substring(0, index);
-				}
-				if (lastPath.equals(path)) {
-					continue;
-				} else {
+				path = getRidOdDuplicateEvents(path);
+				if (!lastPath.equals(path)) {
 					lastPath = path;
-				}
-
-				if (path.startsWith("/content") || path.startsWith("/apps")) {
-					LOG.info("content changed: " + path);
-					for (JcrEventListener eventListener : listeners) {
-						if (eventListener != null) {
-							eventListener.contentChanged(path);
+					if (path.startsWith("/content") || path.startsWith("/apps")) {
+						LOG.info("content changed: " + path);
+						for (JcrEventListener eventListener : listeners) {
+							if (eventListener != null) {
+								eventListener.contentChanged(path);
+							}
 						}
 					}
 				}
+
 			} catch (RepositoryException e) {
 				LOG.error("Error occured while processing event", e);
 			}
 		}
+	}
+
+	private String getRidOdDuplicateEvents(String path) {
+		return StringUtils.substringBefore(path, "/jcr:content");
 	}
 
 }
