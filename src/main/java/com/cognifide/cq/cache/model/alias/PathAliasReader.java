@@ -1,4 +1,4 @@
-package com.cognifide.cq.cache.model;
+package com.cognifide.cq.cache.model.alias;
 
 import java.util.HashSet;
 import java.util.Set;

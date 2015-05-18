@@ -1,5 +1,6 @@
-package com.cognifide.cq.cache.model;
+package com.cognifide.cq.cache.model.alias;
 
+import java.util.Collections;
 import java.util.Set;
 
 public class PathAlias {
@@ -18,7 +19,7 @@ public class PathAlias {
 	}
 
 	public Set<String> getPaths() {
-		return paths;
+		return Collections.unmodifiableSet(paths);
 	}
 
 	public void addPath(String path) {
@@ -35,21 +36,24 @@ public class PathAlias {
 
 	@Override
 	public boolean equals(Object obj) {
-		if (this == obj)
+		if (this == obj) {
 			return true;
-		if (obj == null)
+		}
+		if (obj == null) {
 			return false;
-		if (getClass() != obj.getClass())
+		}
+		if (getClass() != obj.getClass()) {
 			return false;
+		}
 		PathAlias other = (PathAlias) obj;
 		if (name == null) {
-			if (other.name != null)
+			if (other.name != null) {
 				return false;
-		} else if (!name.equals(other.name))
+			}
+		} else if (!name.equals(other.name)) {
 			return false;
+		}
 		return true;
 	}
-	
-	
 
 }
