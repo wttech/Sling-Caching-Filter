@@ -211,6 +211,7 @@ public class ComponentCacheFilterTest {
 	}
 
 	private void setUpConfigurationReaderWithCachedConfigurationEnabled() {
+		when(configurationReader.hasConfigurationFor(request)).thenReturn(true);
 		when(configurationReader.readComponentConfiguration(request, CACHE_DURATION))
 				.thenReturn(resourceTypeCacheConfiguration);
 		when(resourceTypeCacheConfiguration.isEnabled()).thenReturn(true);
@@ -230,10 +231,13 @@ public class ComponentCacheFilterTest {
 		testedObject.doFilter(request, response, filterChain);
 
 		//then
+		verify(configurationReader).hasConfigurationFor(request);
+		verify(configurationReader, never()).readComponentConfiguration(request, CACHE_DURATION);
 		verify(filterChain).doFilter(request, response);
 	}
 
 	private void setUpConfigurationReaderWithCachedConfigurationDisabled() {
+		when(configurationReader.hasConfigurationFor(request)).thenReturn(false);
 		when(configurationReader.readComponentConfiguration(request, CACHE_DURATION))
 				.thenReturn(resourceTypeCacheConfiguration);
 		when(resourceTypeCacheConfiguration.isEnabled()).thenReturn(false);

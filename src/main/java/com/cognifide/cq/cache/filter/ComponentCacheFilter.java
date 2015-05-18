@@ -304,33 +304,51 @@ public class ComponentCacheFilter implements Filter, ICacheKeyProvider, ICacheGr
 			if (request instanceof SlingHttpServletRequest) {
 				SlingHttpServletRequest slingHttpServletRequest = (SlingHttpServletRequest) request;
 
-				ResourceTypeCacheConfiguration cacheConfiguration = configurationReader
-						.readComponentConfiguration(slingHttpServletRequest, duration);
+				if (configurationReader.hasConfigurationFor(slingHttpServletRequest)) {
+					ResourceTypeCacheConfiguration cacheConfiguration
+							= configurationReader.readComponentConfiguration(slingHttpServletRequest, duration);
 
-				if (cacheConfiguration.isEnabled()) {
-					Resource resource = slingHttpServletRequest.getResource();
-					if (log.isInfoEnabled()) {
-						log.info("filtering path=[{" + resource.getPath() + "}],resourceType=[{" + resource.getResourceType()
-								+ "}],shouldFilter=[{true}]");
+					if (null != cacheConfiguration && cacheConfiguration.isEnabled()) {
+						cacheRequestedResource(slingHttpServletRequest, response, chain, cacheConfiguration);
+					} else {
+						if (log.isInfoEnabled()) {
+							log.info("Caching is disabled for "
+									+ slingHttpServletRequest.getResource().getResourceType());
+						}
+						chain.doFilter(request, response);
 					}
-
-					byte[] result = getResult(slingHttpServletRequest, response, chain, cacheConfiguration);
-					response.getWriter().write(new String(result, response.getCharacterEncoding()));
 				} else {
+					if (log.isInfoEnabled()) {
+						log.info("There is no configuration for "
+								+ slingHttpServletRequest.getResource().getResourceType());
+					}
 					chain.doFilter(request, response);
 				}
 			} else {
 				if (log.isInfoEnabled()) {
-					log.info("NOT A SLING REQUEST");
+					log.info("Request is not a sling request.");
 				}
 				chain.doFilter(request, response);
 			}
 		} else {
 			if (log.isDebugEnabled()) {
-				log.debug("DISABLED");
+				log.debug("Filter is disabled.");
 			}
 			chain.doFilter(request, response);
 		}
+	}
+
+	private void cacheRequestedResource(
+			SlingHttpServletRequest slingHttpServletRequest, ServletResponse response, FilterChain chain,
+			ResourceTypeCacheConfiguration cacheConfiguration) throws IOException, ServletException {
+		Resource resource = slingHttpServletRequest.getResource();
+		if (log.isInfoEnabled()) {
+			log.info("filtering path=[{" + resource.getPath() + "}],resourceType=[{" + resource.getResourceType()
+					+ "}],shouldFilter=[{true}]");
+		}
+
+		byte[] result = getResult(slingHttpServletRequest, response, chain, cacheConfiguration);
+		response.getWriter().write(new String(result, response.getCharacterEncoding()));
 	}
 
 	private byte[] getResult(SlingHttpServletRequest httpRequest, ServletResponse response,
