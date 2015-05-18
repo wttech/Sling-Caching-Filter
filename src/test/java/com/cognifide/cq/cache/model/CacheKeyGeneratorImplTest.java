@@ -1,5 +1,6 @@
 package com.cognifide.cq.cache.model;
 
+import com.cognifide.cq.cache.model.key.CacheKeyGeneratorImpl;
 import static junit.framework.Assert.assertEquals;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
