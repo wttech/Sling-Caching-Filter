@@ -15,10 +15,13 @@
  */
 package com.cognifide.cq.cache.filter.cache.action;
 
+/**
+ * Defines action that will be done on cache.
+ */
 public interface CacheAction {
 
 	/**
-	 * Executes cache action.
+	 * Executes action.
 	 */
 	void execute();
 }

@@ -188,7 +188,6 @@ public class ComponentCacheFilterTest {
 	}
 
 	@Test
-	@Ignore
 	public void shouldCacheResourceIfConfigurationIsEnabled() throws IOException, ServletException {
 		//given
 		setUpFilterConfig();

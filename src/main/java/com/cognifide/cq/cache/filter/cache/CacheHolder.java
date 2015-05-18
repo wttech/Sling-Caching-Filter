@@ -40,9 +40,9 @@ public interface CacheHolder {
 	/**
 	 * Find and return data with given key. If entry needs refresh throws exception.
 	 *
-	 * @param resourcType
+	 * @param resourcType resource type
 	 * @param key for which data will be searched
-	 * @return stored data
+	 * @return stored data or throws exception
 	 * @throws NeedsRefreshException thrown when data needs refresh
 	 */
 	ByteArrayOutputStream get(String resourcType, String key) throws NeedsRefreshException;

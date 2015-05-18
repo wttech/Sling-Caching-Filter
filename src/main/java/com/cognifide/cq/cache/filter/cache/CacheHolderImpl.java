@@ -89,6 +89,7 @@ public class CacheHolderImpl implements CacheHolder {
 	public void destroy() {
 		statistics.clearStatistics();
 		ServletCacheAdministrator.destroyInstance(servletContext);
+		cacheAdministrator = null;
 		if (log.isInfoEnabled()) {
 			log.info("Instance of servlet cache administrator was destroyed");
 		}
