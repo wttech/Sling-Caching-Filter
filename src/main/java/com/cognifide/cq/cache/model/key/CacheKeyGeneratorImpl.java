@@ -1,4 +1,4 @@
-package com.cognifide.cq.cache.model;
+package com.cognifide.cq.cache.model.key;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.sling.api.resource.Resource;
