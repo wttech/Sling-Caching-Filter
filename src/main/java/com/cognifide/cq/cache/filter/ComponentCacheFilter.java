@@ -190,6 +190,10 @@ public class ComponentCacheFilter implements Filter, ICacheKeyProvider, ICacheGr
 		log.info("init " + getClass());
 		servletContext = filterConfig.getServletContext();
 		cacheHolder.create(servletContext, configProperties, false);
+		setServletContextAttributes();
+	}
+
+	private void setServletContextAttributes() {
 		if (enabled) {
 			servletContext.setAttribute(SERVLET_CONTEXT_CACHE_ENABLED, Boolean.TRUE);
 			servletContext.setAttribute(SERVLET_CONTEXT_CACHE_DURATION, duration);
@@ -220,14 +224,10 @@ public class ComponentCacheFilter implements Filter, ICacheKeyProvider, ICacheGr
 			readConfiguration(context);
 		}
 
-		if (servletContext != null) { // first time activate is called before init, so servletContext is null
+		// first time activate is called before init, so servletContext is null
+		if (servletContext != null) {
 			cacheHolder.create(servletContext, configProperties, true);
-			if (enabled) {
-				servletContext.setAttribute(SERVLET_CONTEXT_CACHE_ENABLED, Boolean.TRUE);
-				servletContext.setAttribute(SERVLET_CONTEXT_CACHE_DURATION, duration);
-			} else {
-				servletContext.setAttribute(SERVLET_CONTEXT_CACHE_ENABLED, Boolean.FALSE);
-			}
+			setServletContextAttributes();
 		}
 	}
 
@@ -274,6 +274,10 @@ public class ComponentCacheFilter implements Filter, ICacheKeyProvider, ICacheGr
 		Set<PathAlias> aliases = pathAliasReader.readAliases(aliasesStrings);
 		pathAliasStore.addAliases(aliases);
 
+		createConfigurationProperties();
+	}
+
+	private void createConfigurationProperties() {
 		configProperties = new Properties();
 		configProperties.put(AbstractCacheAdministrator.CACHE_MEMORY_KEY, Boolean.toString(memory));
 		configProperties.put(AbstractCacheAdministrator.CACHE_CAPACITY_KEY, Integer.toString(capacity));

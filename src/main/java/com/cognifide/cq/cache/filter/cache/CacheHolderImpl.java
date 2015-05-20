@@ -35,6 +35,7 @@ public class CacheHolderImpl implements CacheHolder {
 		if (null == this.cacheAdministrator || overwrite) {
 			this.servletContext = servletContext;
 			this.cacheAdministrator = ServletCacheAdministrator.getInstance(servletContext, properties);
+//			findCache().addCacheEventListener(statistics);
 			if (log.isInfoEnabled()) {
 				log.info("Instance of servlet cache administrator was retrived");
 			}
