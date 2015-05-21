@@ -75,12 +75,12 @@
                 <extensions>true</extensions>
                 <configuration>
                     <instructions>
-                        <Import-Package>!javax.jms.*,!org.jgroups.*,!org.hibernate.*,*</Import-Package>
-                        <Export-Package>com.cognifide.cq.cache.*,com.opensymphony.oscache.*</Export-Package>
+                        <Import-Package>!javax.jms.*,!org.jgroups.*,!org.hibernate.*,!sun.misc.*,!org.quartz.*,!org.terracotta.*,!com.sun.*,!javax.enterprise.util.*,*</Import-Package>
+                        <Export-Package>com.cognifide.cq.cache.*,com.opensymphony.oscache.*,org.ehcache.jcache.*,javax.cache.*</Export-Package>
                         <Bundle-SymbolicName>${project.groupId}.${project.artifactId}</Bundle-SymbolicName>
                         <Bundle-Name>${project.name}</Bundle-Name>
                         <Bundle-Vendor>Cognifide Ltd.</Bundle-Vendor>
-                        <Embed-Dependency>oscache;scope=compile|runtime</Embed-Dependency>
+                        <Embed-Dependency>oscache|cache-api|jcache|ehcache;scope=compile|runtime</Embed-Dependency>
                         <Embed-Transitive>false</Embed-Transitive>
                     </instructions>
                 </configuration>
@@ -146,6 +146,23 @@
                     <artifactId>jms</artifactId>
                 </exclusion>
             </exclusions>
+        </dependency>
+
+		<!-- cache -->
+        <dependency>
+            <groupId>javax.cache</groupId>
+            <artifactId>cache-api</artifactId>
+            <version>1.0.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.ehcache</groupId>
+            <artifactId>jcache</artifactId>
+            <version>1.0.1</version>
+        </dependency>
+        <dependency>
+            <groupId>net.sf.ehcache</groupId>
+            <artifactId>ehcache</artifactId>
+            <version>2.10.0</version>
         </dependency>
 
         <!-- jcr -->

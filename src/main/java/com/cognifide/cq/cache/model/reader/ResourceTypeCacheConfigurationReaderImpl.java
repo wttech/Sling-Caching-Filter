@@ -2,15 +2,15 @@ package com.cognifide.cq.cache.model.reader;
 
 import com.cognifide.cq.cache.definition.ResourceTypeCacheDefinition;
 import com.cognifide.cq.cache.definition.jcr.JcrResourceTypeCacheDefinition;
+import com.cognifide.cq.cache.filter.osgi.CacheConfiguration;
 import com.cognifide.cq.cache.model.CacheConstants;
 import com.cognifide.cq.cache.model.InvalidationPathUtil;
-import com.cognifide.cq.cache.model.alias.PathAliasStore;
 import com.cognifide.cq.cache.model.ResourceTypeCacheConfiguration;
+import com.cognifide.cq.cache.model.alias.PathAliasStore;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -48,6 +48,9 @@ public class ResourceTypeCacheConfigurationReaderImpl implements ResourceTypeCac
 	@Reference
 	private PathAliasStore pathAliasStore;
 
+	@Reference
+	private CacheConfiguration cacheConfiguration;
+
 	@Override
 	public boolean hasConfigurationFor(SlingHttpServletRequest request) {
 		return hasConfigurationInOsgi(request) || hasConfigurationInJcr(request);
@@ -68,18 +71,18 @@ public class ResourceTypeCacheConfigurationReaderImpl implements ResourceTypeCac
 	}
 
 	@Override
-	public ResourceTypeCacheConfiguration readComponentConfiguration(SlingHttpServletRequest request, int defaultTime) {
+	public ResourceTypeCacheConfiguration readComponentConfiguration(SlingHttpServletRequest request) {
 		Resource requestedResource = request.getResource();
 
 		Resource typeResource = getTypeResource(request);
 		Resource cacheResource = getCacheResource(request, typeResource);
 
 		ResourceTypeCacheDefinition resourceTypeCacheDefinition
-				= findResourceTypeCacheDefinition(requestedResource, cacheResource, defaultTime);
+				= findResourceTypeCacheDefinition(requestedResource, cacheResource);
 		ResourceTypeCacheConfiguration configuration = null;
 
 		if (null != resourceTypeCacheDefinition) {
-			configuration = readComponentConfiguration(requestedResource, resourceTypeCacheDefinition, defaultTime);
+			configuration = readComponentConfiguration(requestedResource, resourceTypeCacheDefinition);
 			if (typeResource != null) {
 				configuration.setResourceTypePath(typeResource.getPath());
 			}
@@ -101,13 +104,13 @@ public class ResourceTypeCacheConfigurationReaderImpl implements ResourceTypeCac
 	}
 
 	private ResourceTypeCacheDefinition findResourceTypeCacheDefinition(
-			Resource requestedResource, Resource cacheResource, int defaultTime) {
+			Resource requestedResource, Resource cacheResource) {
 		ResourceTypeCacheDefinition resourceTypeCacheDefinition = null;
 		if (resourceTypeCacheDefinitions.containsKey(requestedResource.getResourceType())) {
 			resourceTypeCacheDefinition = resourceTypeCacheDefinitions.get(requestedResource.getResourceType());
 		} else if (null != cacheResource) {
 			resourceTypeCacheDefinition
-					= new JcrResourceTypeCacheDefinition(cacheResource, requestedResource, defaultTime);
+					= new JcrResourceTypeCacheDefinition(cacheResource, requestedResource, cacheConfiguration.getDuration());
 		}
 		return resourceTypeCacheDefinition;
 	}
@@ -116,9 +119,9 @@ public class ResourceTypeCacheConfigurationReaderImpl implements ResourceTypeCac
 	 * Reads the component cache configuration.
 	 */
 	private ResourceTypeCacheConfiguration readComponentConfiguration(Resource requestedResource,
-			ResourceTypeCacheDefinition resourceTypeCacheDefinition, int defaultTime) {
+			ResourceTypeCacheDefinition resourceTypeCacheDefinition) {
 		ResourceTypeCacheConfiguration config
-				= new ResourceTypeCacheConfiguration(resourceTypeCacheDefinition, defaultTime);
+				= new ResourceTypeCacheConfiguration(resourceTypeCacheDefinition, cacheConfiguration.getDuration());
 		return readComponentPathsConfiguration(requestedResource, config, resourceTypeCacheDefinition);
 	}
 

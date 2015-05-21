@@ -17,6 +17,7 @@ package com.cognifide.cq.cache.filter.cache;
 
 import com.cognifide.cq.cache.algorithm.SilentRemovalNotificator;
 import com.cognifide.cq.cache.filter.cache.action.CacheAction;
+import com.cognifide.cq.cache.filter.osgi.CacheConfiguration;
 import com.cognifide.cq.cache.plugins.statistics.Statistics;
 import com.cognifide.cq.cache.refresh.jcr.JcrRefreshPolicy;
 import com.opensymphony.oscache.base.Cache;
@@ -55,6 +56,8 @@ public class CacheHolderImplTest {
 
 	private static final String STATISTICS_FIELD_NAME = "statistics";
 
+	private static final String CACHE_CONFIGURATION_FIELD_NAME = "cacheConfiguration";
+
 	private static final String RESOURCE_TYPE = "resource type";
 
 	private static final String KEY = "key";
@@ -82,6 +85,9 @@ public class CacheHolderImplTest {
 	@Mock
 	private Statistics statistics;
 
+	@Mock
+	private CacheConfiguration cacheConfiguration;
+
 	private CacheHolderImpl testedObject;
 
 	@Rule
@@ -94,6 +100,8 @@ public class CacheHolderImplTest {
 	public void setUp() {
 		testedObject = new CacheHolderImpl();
 		Whitebox.setInternalState(testedObject, STATISTICS_FIELD_NAME, statistics);
+		Whitebox.setInternalState(testedObject, CACHE_CONFIGURATION_FIELD_NAME, cacheConfiguration);
+		when(cacheConfiguration.getCacheProperties()).thenReturn(properties);
 	}
 
 	@Test
@@ -102,7 +110,7 @@ public class CacheHolderImplTest {
 		PowerMockito.mockStatic(ServletCacheAdministrator.class);
 
 		//when
-		testedObject.create(servletContext, properties, NOT_IMPORTANT);
+		testedObject.create(servletContext, NOT_IMPORTANT);
 
 		//then
 		PowerMockito.verifyStatic();
@@ -116,7 +124,7 @@ public class CacheHolderImplTest {
 		Whitebox.setInternalState(testedObject, CACHE_ADMINISTRATOR_FIELD_NAME, servletCacheAdministrator);
 
 		//when
-		testedObject.create(servletContext, properties, true);
+		testedObject.create(servletContext, true);
 
 		//then
 		PowerMockito.verifyStatic();
@@ -130,7 +138,7 @@ public class CacheHolderImplTest {
 		Whitebox.setInternalState(testedObject, CACHE_ADMINISTRATOR_FIELD_NAME, servletCacheAdministrator);
 
 		//when
-		testedObject.create(servletContext, properties, false);
+		testedObject.create(servletContext, false);
 
 		//then
 		PowerMockito.verifyStatic(never());
@@ -157,7 +165,7 @@ public class CacheHolderImplTest {
 	private void setUpCacheHolder() {
 		PowerMockito.mockStatic(ServletCacheAdministrator.class);
 		PowerMockito.when(ServletCacheAdministrator.getInstance(servletContext, properties)).thenReturn(servletCacheAdministrator);
-		testedObject.create(servletContext, properties, NOT_IMPORTANT);
+		testedObject.create(servletContext, NOT_IMPORTANT);
 	}
 
 	@Test
@@ -237,6 +245,7 @@ public class CacheHolderImplTest {
 		PowerMockito.mockStatic(ServletCacheAdministrator.class);
 
 		//when
+		testedObject.activate();
 		testedObject.deactivate();
 
 		//then

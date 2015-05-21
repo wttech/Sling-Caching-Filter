@@ -1,9 +1,10 @@
 package com.cognifide.cq.cache.model.reader;
 
 import com.cognifide.cq.cache.definition.ResourceTypeCacheDefinition;
+import com.cognifide.cq.cache.filter.osgi.CacheConfiguration;
 import com.cognifide.cq.cache.model.CacheConstants;
-import com.cognifide.cq.cache.model.alias.PathAliasStoreImpl;
 import com.cognifide.cq.cache.model.ResourceTypeCacheConfiguration;
+import com.cognifide.cq.cache.model.alias.PathAliasStore;
 import org.junit.Test;
 
 import org.apache.sling.api.SlingHttpServletRequest;
@@ -62,10 +63,13 @@ public class ResourceTypeCacheConfigurationReaderTest {
 	private ValueMap valueMap;
 
 	@Mock
+	private CacheConfiguration cacheConfiguration;
+
+	@Mock
 	private ResourceTypeCacheDefinition resourceTypeCacheDefinition;
 
 	@Mock
-	private PathAliasStoreImpl pathAliasStore;
+	private PathAliasStore pathAliasStore;
 
 	@InjectMocks
 	private ResourceTypeCacheConfigurationReaderImpl testedObject = new ResourceTypeCacheConfigurationReaderImpl();
@@ -80,7 +84,7 @@ public class ResourceTypeCacheConfigurationReaderTest {
 		when(resourceResolver.getResource(RESOURCE_TYPE)).thenReturn(null);
 
 		//when
-		ResourceTypeCacheConfiguration actual = testedObject.readComponentConfiguration(request, DEFAULT_TIME);
+		ResourceTypeCacheConfiguration actual = testedObject.readComponentConfiguration(request);
 
 		//then
 		assertThat(actual, is(nullValue()));
@@ -105,7 +109,7 @@ public class ResourceTypeCacheConfigurationReaderTest {
 		testedObject.bindResourceTypeCacheDefinition(resourceTypeCacheDefinition);
 
 		//when
-		ResourceTypeCacheConfiguration actual = testedObject.readComponentConfiguration(request, DEFAULT_TIME);
+		ResourceTypeCacheConfiguration actual = testedObject.readComponentConfiguration(request);
 
 		//then
 		assertThat(actual.isEnabled(), is(true));
@@ -130,14 +134,14 @@ public class ResourceTypeCacheConfigurationReaderTest {
 		//given
 		setUpRequest();
 		when(resourceResolver.getResource(RESOURCE_TYPE)).thenReturn(null);
-
+		setUpCacheConfiguration();
 		setUpResourceTypeCacheDefinitionWithoutValidityTime();
 		when(resourceTypeCacheDefinition.getValidityTimeInSeconds()).thenReturn(null);
 
 		testedObject.bindResourceTypeCacheDefinition(resourceTypeCacheDefinition);
 
 		//when
-		ResourceTypeCacheConfiguration actual = testedObject.readComponentConfiguration(request, DEFAULT_TIME);
+		ResourceTypeCacheConfiguration actual = testedObject.readComponentConfiguration(request);
 
 		//then
 		assertThat(actual.isEnabled(), is(true));
@@ -152,14 +156,14 @@ public class ResourceTypeCacheConfigurationReaderTest {
 	public void shouldCreateResourceTypeCachConfigurationWhenResourceTypeIsConfiguredInJcr() {
 		//given
 		setUpRequest();
-		when(resourceResolver.getResource("/apps/" + RESOURCE_TYPE)).thenReturn(typeResource);
-		when(resourceResolver.getResource(typeResource, "cache")).thenReturn(cacheResource);
+		setUpResourceResolver();
+		setUpCacheConfiguration();
 		setUpCacheResourceWithoutValidityTime();
 
 		when(valueMap.get(CacheConstants.CACHE_VALIDITY_TIME, DEFAULT_TIME)).thenReturn(30);
 
 		//when
-		ResourceTypeCacheConfiguration actual = testedObject.readComponentConfiguration(request, DEFAULT_TIME);
+		ResourceTypeCacheConfiguration actual = testedObject.readComponentConfiguration(request);
 
 		//then
 		assertThat(actual.isEnabled(), is(true));
@@ -170,18 +174,27 @@ public class ResourceTypeCacheConfigurationReaderTest {
 		assertThat(actual.getInvalidatePaths().size(), is(3));
 	}
 
+	private void setUpResourceResolver() {
+		when(resourceResolver.getResource("/apps/" + RESOURCE_TYPE)).thenReturn(typeResource);
+		when(resourceResolver.getResource(typeResource, "cache")).thenReturn(cacheResource);
+	}
+
+	private void setUpCacheConfiguration() {
+		when(cacheConfiguration.getDuration()).thenReturn(DEFAULT_TIME);
+	}
+
 	@Test
 	public void shouldCreateResourceTypeCachConfigurationWhenResourceTypeIsConfiguredInJcrWithDefaultTimeIfNotProvided() {
 		//given
 		setUpRequest();
-		when(resourceResolver.getResource("/apps/" + RESOURCE_TYPE)).thenReturn(typeResource);
-		when(resourceResolver.getResource(typeResource, "cache")).thenReturn(cacheResource);
+		setUpResourceResolver();
+		setUpCacheConfiguration();
 		setUpCacheResourceWithoutValidityTime();
 
 		when(valueMap.get(CacheConstants.CACHE_VALIDITY_TIME, DEFAULT_TIME)).thenReturn(null);
 
 		//when
-		ResourceTypeCacheConfiguration actual = testedObject.readComponentConfiguration(request, DEFAULT_TIME);
+		ResourceTypeCacheConfiguration actual = testedObject.readComponentConfiguration(request);
 
 		//then
 		assertThat(actual.isEnabled(), is(true));

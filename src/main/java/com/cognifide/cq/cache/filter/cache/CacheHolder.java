@@ -18,7 +18,6 @@ package com.cognifide.cq.cache.filter.cache;
 import com.cognifide.cq.cache.refresh.jcr.JcrRefreshPolicy;
 import com.opensymphony.oscache.base.NeedsRefreshException;
 import java.io.ByteArrayOutputStream;
-import java.util.Properties;
 import javax.servlet.ServletContext;
 
 public interface CacheHolder {
@@ -27,10 +26,9 @@ public interface CacheHolder {
 	 * Creates underlying cache instance.
 	 *
 	 * @param servletContext - current servlet context
-	 * @param properties
 	 * @param overwrite decides if existing cache should be overwritten
 	 */
-	void create(ServletContext servletContext, Properties properties, boolean overwrite);
+	void create(ServletContext servletContext, boolean overwrite);
 
 	/**
 	 * Destroys underlying instance of cache. After this step this class in unusable.

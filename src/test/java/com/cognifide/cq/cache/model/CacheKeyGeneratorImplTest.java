@@ -1,116 +1,103 @@
 package com.cognifide.cq.cache.model;
 
 import com.cognifide.cq.cache.model.key.CacheKeyGeneratorImpl;
-import static junit.framework.Assert.assertEquals;
-import static org.easymock.EasyMock.createMock;
-import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.replay;
-import static org.easymock.EasyMock.verify;
-
+import org.apache.sling.api.SlingHttpServletRequest;
+import org.apache.sling.api.request.RequestPathInfo;
 import org.apache.sling.api.resource.Resource;
-import org.junit.After;
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.mockito.Mock;
+import static org.mockito.Mockito.when;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
 
 /**
  * @author Bartosz Rudnicki
  */
 public class CacheKeyGeneratorImplTest {
 
-	private CacheKeyGeneratorImpl keyGenerator;
+	private static final String PATH = "/some/path";
 
-	private Resource resourceMock;
+	@Mock
+	private SlingHttpServletRequest request;
+
+	@Mock
+	private RequestPathInfo requestPathInfo;
+
+	@Mock
+	private Resource resource;
+
+	private CacheKeyGeneratorImpl testedObject;
+
+	@Rule
+	public MockitoRule mockitoRule = MockitoJUnit.rule();
 
 	@Before
 	public void setUp() {
-		keyGenerator = new CacheKeyGeneratorImpl();
-		resourceMock = createMock(Resource.class);
-	}
+		testedObject = new CacheKeyGeneratorImpl();
 
-	@After
-	public void tearDown() {
+		when(request.getResource()).thenReturn(resource);
+		when(request.getRequestPathInfo()).thenReturn(requestPathInfo);
 	}
 
 	@Test
 	public void testGenerateKeyFromResourceWithNegativeCacheLevel() {
-		expect(resourceMock.getPath()).andReturn("/some/path");
-		replay(resourceMock);
-		String key = keyGenerator.generateKey(-1, resourceMock, "text.txt");
-		verify(resourceMock);
-		assertEquals("/some/path.text.txt", key);
+		//given
+		setUpResource("/some/path", null);
+		setUpSelectorString("text.txt");
+
+		//then
+		String actual = testedObject.generateKey(-1, request);
+
+		//then
+		assertThat(actual, is("/some/path.text.txt"));
+	}
+
+	private void setUpResource(String resourcePath, String resourceType) {
+		when(resource.getPath()).thenReturn(resourcePath);
+		when(resource.getResourceType()).thenReturn(resourceType);
+	}
+
+	private void setUpSelectorString(String selectorString) {
+		when(requestPathInfo.getSelectorString()).thenReturn(selectorString);
 	}
 
 	@Test
 	public void testGenerateKeyFromResourceWithZeroCacheLevel() {
-		expect(resourceMock.getResourceType()).andReturn("/some/resource/path");
-		replay(resourceMock);
-		String key = keyGenerator.generateKey(0, resourceMock, null);
-		verify(resourceMock);
-		assertEquals("/some/resource/path", key);
+		//given
+		setUpResource(null, "/some/resource/path");
+
+		//when
+		String actual = testedObject.generateKey(0, request);
+
+		//then
+		assertThat(actual, is("/some/resource/path"));
 	}
 
 	@Test
 	public void testGenerateKeyFromResourceWithPositiveCacheLevel2() {
-		expect(resourceMock.getResourceType()).andReturn("/some/resource/type/path");
-		expect(resourceMock.getPath()).andReturn("/some/resource/path");
-		replay(resourceMock);
-		String key = keyGenerator.generateKey(2, resourceMock, "txt");
-		verify(resourceMock);
-		assertEquals("/some/resource/type/path/some/resource.txt", key);
+		//given
+		setUpResource("/some/resource/path", "/some/resource/type/path");
+		setUpSelectorString("txt");
+
+		String actual = testedObject.generateKey(2, request);
+
+		//then
+		assertThat(actual, is("/some/resource/type/path/some/resource.txt"));
 	}
 
 	@Test
 	public void testGenerateKeyFromResourceWithPositiveCacheLevel3() {
-		expect(resourceMock.getResourceType()).andReturn("some/resource/type/path");
-		expect(resourceMock.getPath()).andReturn("/some/resource/path");
-		replay(resourceMock);
-		String key = keyGenerator.generateKey(3, resourceMock, null);
-		verify(resourceMock);
-		assertEquals("/apps/some/resource/type/path/some/resource/path", key);
-	}
+		//given
+		setUpResource("/some/resource/path", "some/resource/type/path");
 
-	@Test
-	public void testGenerateKeyFromStringsWithNegativeCacheLevel1() {
-		assertEquals("/prefix/pagePath",
-				keyGenerator.generateKey(Integer.MIN_VALUE, "/prefix", "/pagePath", ""));
-	}
+		//when
+		String actual = testedObject.generateKey(3, request);
 
-	@Test
-	public void testGenerateKeyFromStringsWithNegativeCacheLevel2() {
-		assertEquals("/prefix/pagePath.txt",
-				keyGenerator.generateKey(Integer.MIN_VALUE, "/prefix", "/pagePath", "txt"));
-	}
-
-	@Test
-	public void testGenerateKeyFromSringsWithZeroCacheLevel1() {
-		assertEquals("/prefix", keyGenerator.generateKey(0, "/prefix", null, null));
-	}
-
-	@Test
-	public void testGenerateKeyFromSringsWithZeroCacheLevel2() {
-		assertEquals("/prefix.ajax", keyGenerator.generateKey(0, "/prefix", null, "ajax"));
-	}
-
-	@Test
-	public void testGenerateKeyFromStringsWithPositiveCacheLevel1() {
-		assertEquals("/prefix/some.txt",
-				keyGenerator.generateKey(1, "/prefix", "/some/page/path/string", "txt"));
-	}
-
-	@Test
-	public void testGenerateKeyFromStringsWithPositiveCacheLevel2() {
-		assertEquals("/prefix/some/page",
-				keyGenerator.generateKey(2, "/prefix", "/some/page/path/string", null));
-	}
-
-	@Test
-	public void testGenerateKeyFromStringsWithPositiveCacheLevel3() {
-		assertEquals("prefix/some/page/path.txt.ajax",
-				keyGenerator.generateKey(3, "prefix", "/some/page/path/string", "txt.ajax"));
-	}
-
-	@Test
-	public void testGenerateKeyFromStringsWithPositiveCacheLevel4() {
-		assertEquals("prefixpath.json", keyGenerator.generateKey(4, "prefix", "path", "json"));
+		//then
+		assertThat(actual, is("/apps/some/resource/type/path/some/resource/path"));
 	}
 }

@@ -2,16 +2,21 @@ package com.cognifide.cq.cache.filter.cache;
 
 import com.cognifide.cq.cache.algorithm.SilentRemovalNotificator;
 import com.cognifide.cq.cache.filter.cache.action.DeleteAction;
+import com.cognifide.cq.cache.filter.osgi.CacheConfiguration;
 import com.cognifide.cq.cache.plugins.statistics.Statistics;
 import com.cognifide.cq.cache.refresh.jcr.JcrRefreshPolicy;
 import com.opensymphony.oscache.base.Cache;
 import com.opensymphony.oscache.base.NeedsRefreshException;
 import com.opensymphony.oscache.web.ServletCacheAdministrator;
 import java.io.ByteArrayOutputStream;
-import java.util.Properties;
+import javax.cache.CacheManager;
+import javax.cache.Caching;
+import javax.cache.configuration.MutableConfiguration;
+import javax.cache.spi.CachingProvider;
 import javax.servlet.ServletContext;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Reference;
@@ -26,15 +31,35 @@ public class CacheHolderImpl implements CacheHolder {
 	@Reference
 	private Statistics statistics;
 
+	@Reference
+	private CacheConfiguration cacheConfiguration;
+
 	private ServletContext servletContext;
 
 	private ServletCacheAdministrator cacheAdministrator;
 
+	private CacheManager cacheManager;
+
+	private MutableConfiguration<String, ByteArrayOutputStream> mutableConfiguration;
+
+	@Activate
+	public void activate() {
+		Caching.setDefaultClassLoader(this.getClass().getClassLoader());
+		CachingProvider cachingProvider = Caching.getCachingProvider("org.ehcache.jcache.JCacheCachingProvider");
+		this.cacheManager = cachingProvider.getCacheManager();
+		this.mutableConfiguration = new MutableConfiguration<String, ByteArrayOutputStream>()
+				.setTypes(String.class, ByteArrayOutputStream.class)
+				.setStoreByValue(false)
+				.setStatisticsEnabled(true);
+
+	}
+
 	@Override
-	public void create(ServletContext servletContext, Properties properties, boolean overwrite) {
+	public void create(ServletContext servletContext, boolean overwrite) {
 		if (null == this.cacheAdministrator || overwrite) {
 			this.servletContext = servletContext;
-			this.cacheAdministrator = ServletCacheAdministrator.getInstance(servletContext, properties);
+			this.cacheAdministrator
+					= ServletCacheAdministrator.getInstance(servletContext, cacheConfiguration.getCacheProperties());
 //			findCache().addCacheEventListener(statistics);
 			if (log.isInfoEnabled()) {
 				log.info("Instance of servlet cache administrator was retrived");
@@ -99,5 +124,6 @@ public class CacheHolderImpl implements CacheHolder {
 	@Deactivate
 	protected void deactivate() {
 		destroy();
+		cacheManager.close();
 	}
 }
