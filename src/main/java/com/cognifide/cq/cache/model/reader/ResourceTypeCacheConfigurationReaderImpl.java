@@ -1,9 +1,7 @@
 package com.cognifide.cq.cache.model.reader;
 
 import com.cognifide.cq.cache.definition.ResourceTypeCacheDefinition;
-import com.cognifide.cq.cache.definition.jcr.JcrResourceTypeCacheDefinition;
 import com.cognifide.cq.cache.filter.osgi.CacheConfiguration;
-import com.cognifide.cq.cache.model.CacheConstants;
 import com.cognifide.cq.cache.model.InvalidationPathUtil;
 import com.cognifide.cq.cache.model.ResourceTypeCacheConfiguration;
 import com.cognifide.cq.cache.model.alias.PathAliasStore;
@@ -51,46 +49,6 @@ public class ResourceTypeCacheConfigurationReaderImpl implements ResourceTypeCac
 	@Reference
 	private CacheConfiguration cacheConfiguration;
 
-	@Override
-	public boolean hasConfigurationFor(SlingHttpServletRequest request) {
-		return hasConfigurationInOsgi(request) || hasConfigurationInJcr(request);
-	}
-
-	private boolean hasConfigurationInOsgi(SlingHttpServletRequest request) {
-		return resourceTypeCacheDefinitions.containsKey(request.getResource().getResourceType());
-	}
-
-	private boolean hasConfigurationInJcr(SlingHttpServletRequest request) {
-		Resource typeResource = getTypeResource(request);
-		Resource cacheResource = getCacheResource(request, typeResource);
-		return null != cacheResource;
-	}
-
-	private Resource getCacheResource(SlingHttpServletRequest request, Resource typeResource) {
-		return request.getResourceResolver().getResource(typeResource, CacheConstants.CACHE_PATH);
-	}
-
-	@Override
-	public ResourceTypeCacheConfiguration readComponentConfiguration(SlingHttpServletRequest request) {
-		Resource requestedResource = request.getResource();
-
-		Resource typeResource = getTypeResource(request);
-		Resource cacheResource = getCacheResource(request, typeResource);
-
-		ResourceTypeCacheDefinition resourceTypeCacheDefinition
-				= findResourceTypeCacheDefinition(requestedResource, cacheResource);
-		ResourceTypeCacheConfiguration configuration = null;
-
-		if (null != resourceTypeCacheDefinition) {
-			configuration = readComponentConfiguration(requestedResource, resourceTypeCacheDefinition);
-			if (typeResource != null) {
-				configuration.setResourceTypePath(typeResource.getPath());
-			}
-		}
-
-		return configuration;
-	}
-
 	public void bindResourceTypeCacheDefinition(ResourceTypeCacheDefinition resourceTypeCacheDefinition) {
 		String resourceType = resourceTypeCacheDefinition.getResourceType();
 		if (resourceTypeCacheDefinitions.containsKey(resourceType)) {
@@ -103,14 +61,34 @@ public class ResourceTypeCacheConfigurationReaderImpl implements ResourceTypeCac
 		resourceTypeCacheDefinitions.remove(resourceTypeCacheDefinition.getResourceType());
 	}
 
-	private ResourceTypeCacheDefinition findResourceTypeCacheDefinition(
-			Resource requestedResource, Resource cacheResource) {
+	@Override
+	public boolean hasConfigurationFor(SlingHttpServletRequest request) {
+		return resourceTypeCacheDefinitions.containsKey(request.getResource().getResourceType());
+	}
+
+	@Override
+	public ResourceTypeCacheConfiguration readComponentConfiguration(SlingHttpServletRequest request) {
+		Resource requestedResource = request.getResource();
+
+		Resource typeResource = getTypeResource(request);
+
+		ResourceTypeCacheDefinition resourceTypeCacheDefinition = findResourceTypeCacheDefinition(requestedResource);
+		ResourceTypeCacheConfiguration configuration = null;
+
+		if (null != resourceTypeCacheDefinition) {
+			configuration = readComponentConfiguration(requestedResource, resourceTypeCacheDefinition);
+			if (typeResource != null) {
+				configuration.setResourceTypePath(typeResource.getPath());
+			}
+		}
+
+		return configuration;
+	}
+
+	private ResourceTypeCacheDefinition findResourceTypeCacheDefinition(Resource requestedResource) {
 		ResourceTypeCacheDefinition resourceTypeCacheDefinition = null;
 		if (resourceTypeCacheDefinitions.containsKey(requestedResource.getResourceType())) {
 			resourceTypeCacheDefinition = resourceTypeCacheDefinitions.get(requestedResource.getResourceType());
-		} else if (null != cacheResource) {
-			resourceTypeCacheDefinition
-					= new JcrResourceTypeCacheDefinition(cacheResource, requestedResource, cacheConfiguration.getDuration());
 		}
 		return resourceTypeCacheDefinition;
 	}
