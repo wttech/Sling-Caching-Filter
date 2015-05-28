@@ -1,5 +1,6 @@
 package com.cognifide.cq.cache.model.key;
 
+import com.cognifide.cq.cache.model.CacheConfigurationEntry;
 import org.apache.sling.api.SlingHttpServletRequest;
 
 /**
@@ -9,5 +10,5 @@ import org.apache.sling.api.SlingHttpServletRequest;
  */
 public interface CacheKeyGenerator {
 
-	String generateKey(int cacheLevel, SlingHttpServletRequest request);
+	String generateKey(SlingHttpServletRequest request, CacheConfigurationEntry cacheConfigurationEntry);
 }

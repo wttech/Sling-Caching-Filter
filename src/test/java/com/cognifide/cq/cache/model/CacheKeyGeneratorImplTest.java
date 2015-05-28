@@ -28,6 +28,9 @@ public class CacheKeyGeneratorImplTest {
 	private RequestPathInfo requestPathInfo;
 
 	@Mock
+	private ResourceTypeCacheConfiguration resourceTypeCacheConfiguration;
+
+	@Mock
 	private Resource resource;
 
 	private CacheKeyGeneratorImpl testedObject;
@@ -48,9 +51,10 @@ public class CacheKeyGeneratorImplTest {
 		//given
 		setUpResource("/some/path", null);
 		setUpSelectorString("text.txt");
+		when(resourceTypeCacheConfiguration.getCacheLevel()).thenReturn(-1);
 
 		//then
-		String actual = testedObject.generateKey(-1, request);
+		String actual = testedObject.generateKey(request, resourceTypeCacheConfiguration);
 
 		//then
 		assertThat(actual, is("/some/path.text.txt"));
@@ -69,9 +73,10 @@ public class CacheKeyGeneratorImplTest {
 	public void testGenerateKeyFromResourceWithZeroCacheLevel() {
 		//given
 		setUpResource(null, "/some/resource/path");
+		when(resourceTypeCacheConfiguration.getCacheLevel()).thenReturn(0);
 
 		//when
-		String actual = testedObject.generateKey(0, request);
+		String actual = testedObject.generateKey(request, resourceTypeCacheConfiguration);
 
 		//then
 		assertThat(actual, is("/some/resource/path"));
@@ -82,8 +87,9 @@ public class CacheKeyGeneratorImplTest {
 		//given
 		setUpResource("/some/resource/path", "/some/resource/type/path");
 		setUpSelectorString("txt");
+		when(resourceTypeCacheConfiguration.getCacheLevel()).thenReturn(2);
 
-		String actual = testedObject.generateKey(2, request);
+		String actual = testedObject.generateKey(request, resourceTypeCacheConfiguration);
 
 		//then
 		assertThat(actual, is("/some/resource/type/path/some/resource.txt"));
@@ -93,9 +99,10 @@ public class CacheKeyGeneratorImplTest {
 	public void testGenerateKeyFromResourceWithPositiveCacheLevel3() {
 		//given
 		setUpResource("/some/resource/path", "some/resource/type/path");
+		when(resourceTypeCacheConfiguration.getCacheLevel()).thenReturn(3);
 
 		//when
-		String actual = testedObject.generateKey(3, request);
+		String actual = testedObject.generateKey(request, resourceTypeCacheConfiguration);
 
 		//then
 		assertThat(actual, is("/apps/some/resource/type/path/some/resource/path"));

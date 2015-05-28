@@ -11,7 +11,7 @@ import org.apache.sling.commons.osgi.OsgiUtil;
 /**
  * @author Bartosz Rudnicki
  */
-public class ResourceTypeCacheConfiguration extends CacheConfigurationEntry {
+public class ResourceTypeCacheConfiguration extends CacheConfigurationEntryImpl {
 
 	private boolean enabled;
 

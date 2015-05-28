@@ -12,8 +12,6 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import org.apache.commons.lang.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.ReferenceCardinality;
@@ -23,15 +21,17 @@ import org.apache.felix.scr.annotations.Service;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ValueMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @author Bartosz Rudnicki
  */
-@Component(immediate = true)
 @Service
+@Component(immediate = true)
 public class ResourceTypeCacheConfigurationReaderImpl implements ResourceTypeCacheConfigurationReader {
 
-	private final static Log log = LogFactory.getLog(ResourceTypeCacheConfigurationReaderImpl.class);
+	private static final Logger logger = LoggerFactory.getLogger(ResourceTypeCacheConfigurationReaderImpl.class);
 
 	private static final String INVALIDATION_PATH = "%s.*";
 
@@ -94,7 +94,7 @@ public class ResourceTypeCacheConfigurationReaderImpl implements ResourceTypeCac
 	public void bindResourceTypeCacheDefinition(ResourceTypeCacheDefinition resourceTypeCacheDefinition) {
 		String resourceType = resourceTypeCacheDefinition.getResourceType();
 		if (resourceTypeCacheDefinitions.containsKey(resourceType)) {
-			log.warn("Resource type cache definition was already defined for " + resourceType);
+			logger.warn("Resource type cache definition was already defined for {}", resourceType);
 		}
 		resourceTypeCacheDefinitions.putIfAbsent(resourceType, resourceTypeCacheDefinition);
 	}

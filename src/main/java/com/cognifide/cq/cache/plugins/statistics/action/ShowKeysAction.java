@@ -15,67 +15,60 @@
  */
 package com.cognifide.cq.cache.plugins.statistics.action;
 
-import com.cognifide.cq.cache.plugins.statistics.Entry;
+import com.cognifide.cq.cache.cache.CacheHolder;
 import com.cognifide.cq.cache.plugins.statistics.Statistics;
 import static com.cognifide.cq.cache.plugins.statistics.html.HtmlBuilder.li;
 import java.io.IOException;
-import java.util.concurrent.ConcurrentMap;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.lang.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ShowKeysAction implements StatisticsAction {
 
-	private static final Log log = LogFactory.getLog(DeleteAction.class);
-
-	private final ConcurrentMap<String, Entry> entries;
+	private static final Logger logger = LoggerFactory.getLogger(ShowKeysAction.class);
 
 	private final HttpServletRequest request;
 
 	private final HttpServletResponse response;
 
-	public ShowKeysAction(ConcurrentMap<String, Entry> entries, HttpServletRequest request, HttpServletResponse response) {
-		this.entries = entries;
+	private final CacheHolder cacheHolder;
+
+	public ShowKeysAction(HttpServletRequest request, HttpServletResponse response, CacheHolder cacheHolder) {
 		this.request = request;
 		this.response = response;
+		this.cacheHolder = cacheHolder;
 	}
 
 	@Override
 	public void exectue() {
-		String key = request.getParameter(Statistics.KEY_PARAMETER);
-		if (StringUtils.isNotEmpty(key)) {
-			log.info("Received key " + key);
+		String cacheName = request.getParameter(Statistics.CACHE_NAME_PARAMETER);
+		if (StringUtils.isNotEmpty(cacheName)) {
+			logger.info("Keys from {} cache will be collected", cacheName);
 			try {
-				readKeysFrom(key);
+				readKeysFrom(cacheName);
 			} catch (IOException x) {
-				log.error("Error while writing keys to response", x);
+				logger.error("Error while generating markup.", x);
+				response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
 			}
 		} else {
-			log.error("Error while reciving request. No key prameter.");
+			logger.error("Request does not contain [cacheName] parameter.");
 			response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
 		}
 	}
 
-	private void readKeysFrom(String key) throws IOException {
-		if (entries.containsKey(key)) {
-			log.info("Statistics contain entry with key " + key);
-			Entry entry = entries.get(key);
-			String markup = generateMarkupWithKeys(entry);
-			response.getWriter().write(markup);
-			response.setStatus(HttpServletResponse.SC_ACCEPTED);
-			response.setContentType("text/html");
-			response.setCharacterEncoding("utf-8");
-		} else {
-			log.error("Statistics do not contain entry with key " + key);
-			response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-		}
+	private void readKeysFrom(String cacheName) throws IOException {
+		String markup = generateMarkupForKeys(cacheHolder.getKeysFor(cacheName));
+		response.getWriter().write(markup);
+		response.setStatus(HttpServletResponse.SC_ACCEPTED);
+		response.setContentType(StatisticsAction.TEXT_HTML);
+		response.setCharacterEncoding(StatisticsAction.UTF_8);
 	}
 
-	private String generateMarkupWithKeys(Entry entry) {
+	private String generateMarkupForKeys(Iterable<String> keys) {
 		StringBuilder markup = new StringBuilder("<ul>");
-		for (String key : entry.getKeys()) {
+		for (String key : keys) {
 			markup.append(li(key));
 		}
 		markup.append("</ul>");

@@ -5,8 +5,6 @@ import com.cognifide.cq.cache.filter.osgi.CacheConfiguration;
 import com.cognifide.cq.cache.model.CacheConstants;
 import com.cognifide.cq.cache.model.ResourceTypeCacheConfiguration;
 import com.cognifide.cq.cache.model.alias.PathAliasStore;
-import org.junit.Test;
-
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
@@ -15,6 +13,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertThat;
 import org.junit.Rule;
+import org.junit.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import static org.mockito.Mockito.when;
@@ -116,7 +115,7 @@ public class ResourceTypeCacheConfigurationReaderTest {
 		assertThat(actual.getCacheLevel(), is(1));
 		assertThat(actual.getResourceType(), is(RESOURCE_TYPE));
 		assertThat(actual.getResourceTypePath(), is(nullValue()));
-		assertThat(actual.getTime(), is(30));
+		assertThat(actual.getValidityTimeInSeconds(), is(30));
 		assertThat(actual.getInvalidatePaths().size(), is(3));
 	}
 
@@ -148,7 +147,7 @@ public class ResourceTypeCacheConfigurationReaderTest {
 		assertThat(actual.getCacheLevel(), is(1));
 		assertThat(actual.getResourceType(), is(RESOURCE_TYPE));
 		assertThat(actual.getResourceTypePath(), is(nullValue()));
-		assertThat(actual.getTime(), is(DEFAULT_TIME));
+		assertThat(actual.getValidityTimeInSeconds(), is(DEFAULT_TIME));
 		assertThat(actual.getInvalidatePaths().size(), is(3));
 	}
 
@@ -170,7 +169,7 @@ public class ResourceTypeCacheConfigurationReaderTest {
 		assertThat(actual.getCacheLevel(), is(1));
 		assertThat(actual.getResourceType(), is(RESOURCE_TYPE));
 		assertThat(actual.getResourceTypePath(), is(nullValue()));
-		assertThat(actual.getTime(), is(30));
+		assertThat(actual.getValidityTimeInSeconds(), is(30));
 		assertThat(actual.getInvalidatePaths().size(), is(3));
 	}
 
@@ -201,7 +200,7 @@ public class ResourceTypeCacheConfigurationReaderTest {
 		assertThat(actual.getCacheLevel(), is(1));
 		assertThat(actual.getResourceType(), is(RESOURCE_TYPE));
 		assertThat(actual.getResourceTypePath(), is(nullValue()));
-		assertThat(actual.getTime(), is(DEFAULT_TIME));
+		assertThat(actual.getValidityTimeInSeconds(), is(DEFAULT_TIME));
 		assertThat(actual.getInvalidatePaths().size(), is(3));
 	}
 

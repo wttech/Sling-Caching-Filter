@@ -15,53 +15,39 @@
  */
 package com.cognifide.cq.cache.plugins.statistics.action;
 
-import com.cognifide.cq.cache.plugins.statistics.Entry;
+import com.cognifide.cq.cache.cache.CacheHolder;
 import com.cognifide.cq.cache.plugins.statistics.Statistics;
-import java.util.concurrent.ConcurrentMap;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.lang.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-public class DeleteAction implements StatisticsAction {
+public class ClearAction implements StatisticsAction {
 
-	private static final Log log = LogFactory.getLog(DeleteAction.class);
-
-	private final ConcurrentMap<String, Entry> entries;
+	private static final Logger logger = LoggerFactory.getLogger(ClearAction.class);
 
 	private final HttpServletRequest request;
 
 	private final HttpServletResponse response;
 
-	public DeleteAction(ConcurrentMap<String, Entry> entries, HttpServletRequest request, HttpServletResponse response) {
-		this.entries = entries;
+	private final CacheHolder cacheHolder;
+
+	public ClearAction(HttpServletRequest request, HttpServletResponse response, CacheHolder cacheHolder) {
 		this.request = request;
 		this.response = response;
+		this.cacheHolder = cacheHolder;
 	}
 
 	@Override
 	public void exectue() {
-		String key = request.getParameter(Statistics.KEY_PARAMETER);
-		if (StringUtils.isNotEmpty(key)) {
-			log.info("Received key " + key);
-			removeKey(key);
+		String cacheName = request.getParameter(Statistics.CACHE_NAME_PARAMETER);
+		if (StringUtils.isNotEmpty(cacheName)) {
+			logger.info("Cache {} will be cleared", cacheName);
+			cacheHolder.clear(cacheName);
 		} else {
-			log.error("Error while reciving request. No key prameter.");
+			logger.error("Error while reciving request. No key prameter.");
 			response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
 		}
 	}
-
-	private void removeKey(String key) {
-		if (entries.containsKey(key)) {
-			log.info("Statistics contain entry with key " + key);
-			Entry entry = entries.remove(key);
-			entry.executeCacheActions();
-			response.setStatus(HttpServletResponse.SC_ACCEPTED);
-		} else {
-			log.error("Statistics do not contain entry with key " + key);
-			response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-		}
-	}
-
 }

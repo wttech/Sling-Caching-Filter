@@ -3,20 +3,21 @@ package com.cognifide.cq.cache.model;
 /**
  * @author Jakub Malecki
  */
-public class CacheConfigurationEntry {
+public class CacheConfigurationEntryImpl implements CacheConfigurationEntry {
 
 	private String resourceType;
 
-	private int time; // in seconds
+	private int validityTimeInSeconds;
 
 	private int cacheLevel;
 
-	public CacheConfigurationEntry(String resourceType, int time, int cacheLevel) {
+	public CacheConfigurationEntryImpl(String resourceType, int time, int cacheLevel) {
 		this.resourceType = resourceType;
-		this.time = time;
+		this.validityTimeInSeconds = time;
 		this.cacheLevel = cacheLevel;
 	}
 
+	@Override
 	public String getResourceType() {
 		return resourceType;
 	}
@@ -25,15 +26,17 @@ public class CacheConfigurationEntry {
 		this.resourceType = resourceType;
 	}
 
-	public int getTime() {
-		return time;
+	@Override
+	public Integer getValidityTimeInSeconds() {
+		return validityTimeInSeconds;
 	}
 
-	public void setTime(int time) {
-		this.time = time;
+	public void setValidityTimeInSeconds(int validityTimeInSeconds) {
+		this.validityTimeInSeconds = validityTimeInSeconds;
 	}
 
-	public int getCacheLevel() {
+	@Override
+	public Integer getCacheLevel() {
 		return cacheLevel;
 	}
 

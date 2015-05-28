@@ -18,7 +18,6 @@ package com.cognifide.cq.cache.filter.osgi;
 import com.cognifide.cq.cache.model.alias.PathAlias;
 import com.cognifide.cq.cache.model.alias.PathAliasReader;
 import com.cognifide.cq.cache.model.alias.PathAliasStore;
-import com.opensymphony.oscache.base.AbstractCacheAdministrator;
 import java.util.Properties;
 import java.util.Set;
 import org.apache.felix.scr.annotations.Activate;
@@ -176,17 +175,17 @@ public class CacheConfigurationImpl implements CacheConfiguration {
 
 	private void createConfigurationProperties() {
 		cacheProperties = new Properties();
-		cacheProperties.put(AbstractCacheAdministrator.CACHE_MEMORY_KEY, Boolean.toString(memory));
-		cacheProperties.put(AbstractCacheAdministrator.CACHE_CAPACITY_KEY, Integer.toString(capacity));
-		cacheProperties.put(AbstractCacheAdministrator.CACHE_ALGORITHM_KEY, algorithm);
-		cacheProperties.put(AbstractCacheAdministrator.CACHE_BLOCKING_KEY, Boolean.toString(blocking));
-		cacheProperties.put(AbstractCacheAdministrator.CACHE_DISK_UNLIMITED_KEY,
-				Boolean.toString(unlimitedDisk));
-		cacheProperties.put(AbstractCacheAdministrator.PERSISTENCE_CLASS_KEY, persistenceClass);
-		cacheProperties.put(CACHE_PATH_KEY, path);
-		cacheProperties.put(AbstractCacheAdministrator.CACHE_PERSISTENCE_OVERFLOW_KEY,
-				Boolean.toString(persistenceOverflowOnly));
-		cacheProperties.put(AbstractCacheAdministrator.CACHE_ENTRY_EVENT_LISTENERS_KEY, eventListeners);
+//		cacheProperties.put(AbstractCacheAdministrator.CACHE_MEMORY_KEY, Boolean.toString(memory));
+//		cacheProperties.put(AbstractCacheAdministrator.CACHE_CAPACITY_KEY, Integer.toString(capacity));
+//		cacheProperties.put(AbstractCacheAdministrator.CACHE_ALGORITHM_KEY, algorithm);
+//		cacheProperties.put(AbstractCacheAdministrator.CACHE_BLOCKING_KEY, Boolean.toString(blocking));
+//		cacheProperties.put(AbstractCacheAdministrator.CACHE_DISK_UNLIMITED_KEY,
+//				Boolean.toString(unlimitedDisk));
+//		cacheProperties.put(AbstractCacheAdministrator.PERSISTENCE_CLASS_KEY, persistenceClass);
+//		cacheProperties.put(CACHE_PATH_KEY, path);
+//		cacheProperties.put(AbstractCacheAdministrator.CACHE_PERSISTENCE_OVERFLOW_KEY,
+//				Boolean.toString(persistenceOverflowOnly));
+//		cacheProperties.put(AbstractCacheAdministrator.CACHE_ENTRY_EVENT_LISTENERS_KEY, eventListeners);
 		cacheProperties.put(CACHE_KEY_KEY, key);
 		cacheProperties.put(CACHE_USE_HOST_DOMAIN_KEY, Boolean.toString(useHostDomainInKey));
 	}

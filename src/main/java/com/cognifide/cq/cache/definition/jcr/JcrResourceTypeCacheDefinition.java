@@ -3,6 +3,7 @@ package com.cognifide.cq.cache.definition.jcr;
 import com.cognifide.cq.cache.definition.ResourceTypeCacheDefinition;
 import com.cognifide.cq.cache.model.CacheConstants;
 import java.util.Arrays;
+import org.apache.commons.lang.StringUtils;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ValueMap;
 
@@ -85,4 +86,10 @@ public class JcrResourceTypeCacheDefinition implements ResourceTypeCacheDefiniti
 	public String[] getInvalidateOnPaths() {
 		return Arrays.copyOf(invalidateOnPaths, invalidateOnPaths.length);
 	}
+
+	@Override
+	public boolean isValid() {
+		return StringUtils.isNotEmpty(resourceType);
+	}
+
 }

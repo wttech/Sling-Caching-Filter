@@ -13,52 +13,61 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.cognifide.cq.cache.filter.cache;
+package com.cognifide.cq.cache.cache;
 
-import com.cognifide.cq.cache.refresh.jcr.JcrRefreshPolicy;
-import com.opensymphony.oscache.base.NeedsRefreshException;
+import com.cognifide.cq.cache.cache.callback.MissingCacheEntryCallback;
+import com.cognifide.cq.cache.model.ResourceTypeCacheConfiguration;
 import java.io.ByteArrayOutputStream;
-import javax.servlet.ServletContext;
+import java.io.IOException;
+import java.net.URI;
+import java.util.Collection;
+import javax.servlet.ServletException;
+import org.apache.sling.api.SlingHttpServletRequest;
 
 public interface CacheHolder {
 
 	/**
-	 * Creates underlying cache instance.
 	 *
-	 * @param servletContext - current servlet context
-	 * @param overwrite decides if existing cache should be overwritten
+	 * @return
 	 */
-	void create(ServletContext servletContext, boolean overwrite);
+	URI getCacheManagerURI();
 
 	/**
-	 * Destroys underlying instance of cache. After this step this class in unusable.
+	 *
+	 * @return
 	 */
-	void destroy();
+	Iterable<String> getCacheNames();
 
 	/**
-	 * Find and return data with given key. If entry needs refresh throws exception.
 	 *
-	 * @param resourcType resource type
-	 * @param key for which data will be searched
-	 * @return stored data or throws exception
-	 * @throws NeedsRefreshException thrown when data needs refresh
+	 * @param cacheName
+	 * @return
 	 */
-	ByteArrayOutputStream get(String resourcType, String key) throws NeedsRefreshException;
+	Collection<String> getKeysFor(String cacheName);
 
 	/**
-	 * Adds data under given key to cache and registers cache event listers with entry refresh policy
 	 *
-	 * @param key under which data will be stored
-	 * @param data to be stored
-	 * @param refreshPolicy - cache event listener and entry refresh policy
+	 * @param request
+	 * @param resourceTypeCacheConfiguration
+	 * @param callback
+	 * @return
+	 * @throws IOException
+	 * @throws ServletException
 	 */
-	void put(String key, ByteArrayOutputStream data, JcrRefreshPolicy refreshPolicy);
+	ByteArrayOutputStream putOrGet(SlingHttpServletRequest request,
+			ResourceTypeCacheConfiguration resourceTypeCacheConfiguration, MissingCacheEntryCallback callback)
+			throws IOException, ServletException;
 
 	/**
-	 * Removes entries with given key
 	 *
-	 * @param key to be removed
+	 * @param cacheName
+	 * @param key
 	 */
-	void remove(String key);
+	void remove(String cacheName, String key);
 
+	/**
+	 *
+	 * @param cacheName
+	 */
+	void clear(String cacheName);
 }

@@ -75,12 +75,12 @@
                 <extensions>true</extensions>
                 <configuration>
                     <instructions>
-                        <Import-Package>!javax.jms.*,!org.jgroups.*,!org.hibernate.*,!sun.misc.*,!org.quartz.*,!org.terracotta.*,!com.sun.*,!javax.enterprise.util.*,*</Import-Package>
+                        <Import-Package>!org.hibernate.*,!sun.misc.*,!org.quartz.*,!org.terracotta.*,!com.sun.*,!javax.enterprise.util.*,*</Import-Package>
                         <Export-Package>com.cognifide.cq.cache.*,com.opensymphony.oscache.*,org.ehcache.jcache.*,javax.cache.*</Export-Package>
                         <Bundle-SymbolicName>${project.groupId}.${project.artifactId}</Bundle-SymbolicName>
                         <Bundle-Name>${project.name}</Bundle-Name>
                         <Bundle-Vendor>Cognifide Ltd.</Bundle-Vendor>
-                        <Embed-Dependency>oscache|cache-api|jcache|ehcache;scope=compile|runtime</Embed-Dependency>
+                        <Embed-Dependency>cache-api|jcache|ehcache;scope=compile|runtime</Embed-Dependency>
                         <Embed-Transitive>false</Embed-Transitive>
                     </instructions>
                 </configuration>
@@ -136,19 +136,7 @@
     </build>
 
     <dependencies>
-        <dependency>
-            <groupId>opensymphony</groupId>
-            <artifactId>oscache</artifactId>
-            <version>2.4</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>javax.jms</groupId>
-                    <artifactId>jms</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-
-		<!-- cache -->
+        <!-- cache -->
         <dependency>
             <groupId>javax.cache</groupId>
             <artifactId>cache-api</artifactId>
@@ -226,6 +214,15 @@
             <groupId>commons-lang</groupId>
             <artifactId>commons-lang</artifactId>
             <version>2.4</version>
+            <scope>provided</scope>
+        </dependency>
+
+
+        <!-- logging  -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>1.6.4</version>
             <scope>provided</scope>
         </dependency>
 

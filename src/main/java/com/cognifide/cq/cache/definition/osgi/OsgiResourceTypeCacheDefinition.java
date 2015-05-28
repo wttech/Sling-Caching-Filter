@@ -2,20 +2,21 @@ package com.cognifide.cq.cache.definition.osgi;
 
 import com.cognifide.cq.cache.definition.ResourceTypeCacheDefinition;
 import java.util.Arrays;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.commons.lang.StringUtils;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.PropertyUnbounded;
 import org.apache.felix.scr.annotations.Service;
 import org.osgi.service.component.ComponentContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Component(configurationFactory = true, metatype = true, immediate = true, label = "Sling Caching Filter Resource Type Definition")
 @Service
 public class OsgiResourceTypeCacheDefinition implements ResourceTypeCacheDefinition {
 
-	private final static Log log = LogFactory.getLog(OsgiResourceTypeCacheDefinition.class);
+	private static final Logger logger = LoggerFactory.getLogger(OsgiResourceTypeCacheDefinition.class);
 
 	private static final boolean ENABLED_PROPERTY_DEFAULT_VALUE = false;
 
@@ -111,7 +112,7 @@ public class OsgiResourceTypeCacheDefinition implements ResourceTypeCacheDefinit
 		try {
 			result = Integer.parseInt(cacheLevel);
 		} catch (NumberFormatException x) {
-			log.error("Error while converting cache level to integer", x);
+			logger.error("Error while converting cache level to integer", x);
 		}
 		return result;
 	}
@@ -129,6 +130,11 @@ public class OsgiResourceTypeCacheDefinition implements ResourceTypeCacheDefinit
 	@Override
 	public String[] getInvalidateOnPaths() {
 		return Arrays.copyOf(invalidateOnPaths, invalidateOnPaths.length);
+	}
+
+	@Override
+	public boolean isValid() {
+		return StringUtils.isNotEmpty(resourceType);
 	}
 
 }

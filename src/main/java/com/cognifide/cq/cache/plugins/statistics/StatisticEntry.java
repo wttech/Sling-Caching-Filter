@@ -1,61 +1,97 @@
 package com.cognifide.cq.cache.plugins.statistics;
 
-import com.cognifide.cq.cache.filter.cache.action.CacheAction;
+import com.cognifide.cq.cache.cache.CacheHolder;
+import java.lang.management.ManagementFactory;
+import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.CopyOnWriteArraySet;
-import java.util.concurrent.atomic.AtomicLong;
+import javax.management.AttributeNotFoundException;
+import javax.management.InstanceNotFoundException;
+import javax.management.MBeanException;
+import javax.management.MBeanServer;
+import javax.management.MalformedObjectNameException;
+import javax.management.ObjectName;
+import javax.management.ReflectionException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-public class Entry {
+public class StatisticEntry {
 
-	private final AtomicLong misses;
+	private static final Logger logger = LoggerFactory.getLogger(StatisticEntry.class);
 
-	private final AtomicLong hits;
+	private static final String CACHE_OBJECT_NAME = "javax.cache:type=CacheStatistics,CacheManager=%s,Cache=%s";
 
-	private final CopyOnWriteArraySet<String> keys;
+	private static final String CACHE_MISS_PERCENTAGE_FIELD_NAME = "CacheMissPercentage";
 
-	private List<CacheAction> cacheActions;
+	private static final String CACHE_HIT_PERCENTAGE_FIELD_NAME = "CacheHitPercentage";
 
-	public Entry() {
-		this.misses = new AtomicLong();
-		this.hits = new AtomicLong();
-		this.keys = new CopyOnWriteArraySet<String>();
-		this.cacheActions = new CopyOnWriteArrayList<CacheAction>();
+	private static final String CACHE_MISSES_FIELD_NAME = "CacheMisses";
+
+	private static final String CACHE_HITS_FIELD_NAME = "CacheHits";
+
+	private final String cacheName;
+
+	private final long cacheHits;
+
+	private final long cacheMisses;
+
+	private final float cacheHitPercentage;
+
+	private final float cacheMissPercentage;
+
+	private final Collection<String> keys;
+
+	public StatisticEntry(CacheHolder cacheHolder, String cacheName)
+			throws MBeanException, AttributeNotFoundException, InstanceNotFoundException, ReflectionException,
+			MalformedObjectNameException {
+		MBeanServer mBeanServer = ManagementFactory.getPlatformMBeanServer();
+
+		this.cacheName = cacheName;
+
+		ObjectName objectName = buildObjectName(cacheHolder, cacheName);
+		this.cacheHits = (Long) mBeanServer.getAttribute(objectName, CACHE_HITS_FIELD_NAME);
+		this.cacheMisses = (Long) mBeanServer.getAttribute(objectName, CACHE_MISSES_FIELD_NAME);
+		this.cacheHitPercentage = (Float) mBeanServer.getAttribute(objectName, CACHE_HIT_PERCENTAGE_FIELD_NAME);
+		this.cacheMissPercentage = (Float) mBeanServer.getAttribute(objectName, CACHE_MISS_PERCENTAGE_FIELD_NAME);
+
+		this.keys = cacheHolder.getKeysFor(cacheName);
 	}
 
-	public long getMisses() {
-		return misses.longValue();
-	}
-
-	public long getHits() {
-		return hits.longValue();
-	}
-
-	public void addKey(String key) {
-		this.keys.add(key);
-	}
-
-	public void addCacheAction(CacheAction cacheAction) {
-		this.cacheActions.add(cacheAction);
-	}
-
-	public void cacheMiss() {
-		misses.addAndGet(1);
-	}
-
-	public void cacheHit() {
-		hits.addAndGet(1);
-	}
-
-	public void executeCacheActions() {
-		for (CacheAction cacheAction : cacheActions) {
-			cacheAction.execute();
+	private ObjectName buildObjectName(CacheHolder cacheHolder, String cacheName) throws MalformedObjectNameException {
+		String name = String.format(CACHE_OBJECT_NAME,
+				sanitize(cacheHolder.getCacheManagerURI().toString()),
+				sanitize(cacheName));
+		if (logger.isDebugEnabled()) {
+			logger.debug("Build object name with {} name", name);
 		}
+		return new ObjectName(name);
 	}
 
-	public Set<String> getKeys() {
-		return Collections.unmodifiableSet(keys);
+	private String sanitize(String string) {
+		return string == null ? "" : string.replaceAll(",|:|=|\n", ".");
 	}
+
+	public String getCacheName() {
+		return cacheName;
+	}
+
+	public long getCacheHits() {
+		return cacheHits;
+	}
+
+	public long getCacheMisses() {
+		return cacheMisses;
+	}
+
+	public float getCacheHitPercentage() {
+		return cacheHitPercentage;
+	}
+
+	public float getCacheMissPercentage() {
+		return cacheMissPercentage;
+	}
+
+	public Collection<String> getKeys() {
+		return Collections.unmodifiableCollection(keys);
+	}
+
 }

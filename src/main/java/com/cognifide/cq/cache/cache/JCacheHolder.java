@@ -1,129 +1,262 @@
-package com.cognifide.cq.cache.filter.cache;
+package com.cognifide.cq.cache.cache;
 
-import com.cognifide.cq.cache.algorithm.SilentRemovalNotificator;
-import com.cognifide.cq.cache.filter.cache.action.DeleteAction;
+import com.cognifide.cq.cache.definition.ResourceTypeCacheDefinition;
+import com.cognifide.cq.cache.expiry.collection.GuardCollectionWatcher;
+import com.cognifide.cq.cache.expiry.guard.ExpiryGuard;
+import com.cognifide.cq.cache.cache.callback.MissingCacheEntryCallback;
 import com.cognifide.cq.cache.filter.osgi.CacheConfiguration;
-import com.cognifide.cq.cache.plugins.statistics.Statistics;
-import com.cognifide.cq.cache.refresh.jcr.JcrRefreshPolicy;
-import com.opensymphony.oscache.base.Cache;
-import com.opensymphony.oscache.base.NeedsRefreshException;
-import com.opensymphony.oscache.web.ServletCacheAdministrator;
+import com.cognifide.cq.cache.model.CacheConfigurationEntry;
+import com.cognifide.cq.cache.model.ResourceTypeCacheConfiguration;
+import com.cognifide.cq.cache.model.key.CacheKeyGenerator;
+import com.cognifide.cq.cache.model.key.CacheKeyGeneratorImpl;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.net.URI;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeUnit;
+import javax.cache.Cache;
 import javax.cache.CacheManager;
 import javax.cache.Caching;
+import javax.cache.configuration.Factory;
+import javax.cache.configuration.FactoryBuilder;
 import javax.cache.configuration.MutableConfiguration;
+import javax.cache.expiry.Duration;
+import javax.cache.expiry.ExpiryPolicy;
+import javax.cache.expiry.TouchedExpiryPolicy;
 import javax.cache.spi.CachingProvider;
-import javax.servlet.ServletContext;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import javax.servlet.ServletException;
+import org.apache.commons.lang.StringUtils;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Reference;
+import org.apache.felix.scr.annotations.ReferenceCardinality;
+import org.apache.felix.scr.annotations.ReferencePolicy;
+import org.apache.felix.scr.annotations.ReferenceStrategy;
 import org.apache.felix.scr.annotations.Service;
+import org.apache.sling.api.SlingHttpServletRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-@Component(immediate = true)
 @Service
-public class CacheHolderImpl implements CacheHolder {
+@Component(immediate = true)
+public class JCacheHolder implements CacheHolder {
 
-	private static final Log log = LogFactory.getLog(CacheHolderImpl.class);
+	private static final Logger logger = LoggerFactory.getLogger(JCacheHolder.class);
 
-	@Reference
-	private Statistics statistics;
+	private static final String CACHING_PROVIDER = "org.ehcache.jcache.JCacheCachingProvider";
 
 	@Reference
 	private CacheConfiguration cacheConfiguration;
 
-	private ServletContext servletContext;
+	@Reference(
+			referenceInterface = ResourceTypeCacheDefinition.class,
+			policy = ReferencePolicy.DYNAMIC,
+			cardinality = ReferenceCardinality.MANDATORY_MULTIPLE,
+			strategy = ReferenceStrategy.EVENT)
+	private final ConcurrentMap<String, ResourceTypeCacheDefinition> resourceTypeCacheDefinitions
+			= new ConcurrentHashMap<String, ResourceTypeCacheDefinition>(8);
 
-	private ServletCacheAdministrator cacheAdministrator;
+	@Reference
+	private GuardCollectionWatcher guardCollectionWatcher;
 
 	private CacheManager cacheManager;
 
-	private MutableConfiguration<String, ByteArrayOutputStream> mutableConfiguration;
+	private CacheKeyGenerator cacheKeyGenerator;
 
 	@Activate
 	public void activate() {
-		Caching.setDefaultClassLoader(this.getClass().getClassLoader());
-		CachingProvider cachingProvider = Caching.getCachingProvider("org.ehcache.jcache.JCacheCachingProvider");
-		this.cacheManager = cachingProvider.getCacheManager();
-		this.mutableConfiguration = new MutableConfiguration<String, ByteArrayOutputStream>()
+		createCacheManager();
+		cacheKeyGenerator = new CacheKeyGeneratorImpl();
+	}
+
+	private void createCacheManager() {
+		if (null == cacheManager || cacheManager.isClosed()) {
+			Caching.setDefaultClassLoader(getClass().getClassLoader());
+			CachingProvider cachingProvider = Caching.getCachingProvider(CACHING_PROVIDER);
+			cacheManager = cachingProvider.getCacheManager();
+			logger.info("Cache manager {} was created.", cacheManager.getURI());
+		}
+	}
+
+	public synchronized void bindResourceTypeCacheDefinition(ResourceTypeCacheDefinition resourceTypeCacheDefinition) {
+		if (resourceTypeCacheDefinition.isValid() && resourceTypeCacheDefinition.isEnabled()) {
+			resourceTypeCacheDefinitions.put(resourceTypeCacheDefinition.getResourceType(), resourceTypeCacheDefinition);
+			createCacheManager();
+			createOrRecreateCache(resourceTypeCacheDefinition);
+		}
+	}
+
+	private Cache<String, ByteArrayOutputStream> createOrRecreateCache(CacheConfigurationEntry cacheConfigurationEntry)
+			throws IllegalArgumentException {
+		final String cacheName = cacheConfigurationEntry.getResourceType();
+
+		if (null != findCacheFor(cacheName)) {
+			deleteCache(cacheName);
+		}
+
+		return createCache(cacheName, cacheConfigurationEntry);
+	}
+
+	private void deleteCache(String cacheName) {
+		if (StringUtils.isNotEmpty(cacheName) && !cacheManager.isClosed()) {
+			logger.info("Destroying {} cache.", cacheName);
+			guardCollectionWatcher.removeGuards(cacheName);
+			cacheManager.destroyCache(cacheName);
+			logger.debug("Cache {} was destroyed", cacheName);
+		}
+	}
+
+	private Cache<String, ByteArrayOutputStream> createCache(
+			String cacheName, CacheConfigurationEntry cacheConfigurationEntry) {
+		Cache<String, ByteArrayOutputStream> cache = null;
+
+		if (StringUtils.isNotEmpty(cacheName) && !cacheManager.isClosed()) {
+			logger.info("Creating {} cache", cacheName);
+			cache = cacheManager.createCache(cacheName, buildBasicCacheConfiguration(cacheConfigurationEntry));
+			logger.debug("Cache {} was created", cacheName);
+		}
+
+		return cache;
+	}
+
+	private Cache<String, ByteArrayOutputStream> findCacheFor(String cacheName) {
+		return !cacheManager.isClosed() && StringUtils.isNotEmpty(cacheName)
+				? cacheManager.getCache(cacheName, String.class, ByteArrayOutputStream.class) : null;
+	}
+
+	private MutableConfiguration<String, ByteArrayOutputStream>
+			buildBasicCacheConfiguration(CacheConfigurationEntry cacheConfigurationEntry) {
+		return new MutableConfiguration<String, ByteArrayOutputStream>()
 				.setTypes(String.class, ByteArrayOutputStream.class)
 				.setStoreByValue(false)
-				.setStatisticsEnabled(true);
+				.setStatisticsEnabled(true)
+				.setExpiryPolicyFactory(createExpiryPolicyFactory(cacheConfigurationEntry));
+	}
 
+	private Factory<? extends ExpiryPolicy> createExpiryPolicyFactory(
+			CacheConfigurationEntry cacheConfigurationEntry) {
+		Integer validityTimeInSeconds = null == cacheConfigurationEntry.getValidityTimeInSeconds()
+				? cacheConfiguration.getDuration() : cacheConfigurationEntry.getValidityTimeInSeconds();
+		Duration duration = new Duration(TimeUnit.SECONDS, validityTimeInSeconds);
+		return new FactoryBuilder.SingletonFactory<ExpiryPolicy>(new TouchedExpiryPolicy(duration));
+	}
+
+	public synchronized void unbindResourceTypeCacheDefinition(ResourceTypeCacheDefinition resourceTypeCacheDefinition) {
+		if (resourceTypeCacheDefinition.isValid()) {
+			String cacheName = resourceTypeCacheDefinition.getResourceType();
+			resourceTypeCacheDefinitions.remove(cacheName);
+			deleteCache(cacheName);
+		}
 	}
 
 	@Override
-	public void create(ServletContext servletContext, boolean overwrite) {
-		if (null == this.cacheAdministrator || overwrite) {
-			this.servletContext = servletContext;
-			this.cacheAdministrator
-					= ServletCacheAdministrator.getInstance(servletContext, cacheConfiguration.getCacheProperties());
-//			findCache().addCacheEventListener(statistics);
-			if (log.isInfoEnabled()) {
-				log.info("Instance of servlet cache administrator was retrived");
+	public URI getCacheManagerURI() {
+		return cacheManager.getURI();
+	}
+
+	@Override
+	public Iterable<String> getCacheNames() {
+		return cacheManager.isClosed() ? Collections.<String>emptySet() : cacheManager.getCacheNames();
+	}
+
+	@Override
+	public Collection<String> getKeysFor(String cacheName) {
+		Set<String> keys = Collections.emptySet();
+
+		Cache<String, ByteArrayOutputStream> cache = findCacheFor(cacheName);
+		if (cacheIsValid(cache)) {
+			keys = new HashSet<String>();
+			Iterator<Cache.Entry<String, ByteArrayOutputStream>> iterator = cache.iterator();
+			while (iterator.hasNext()) {
+				keys.add(iterator.next().getKey());
 			}
 		}
+
+		return Collections.unmodifiableSet(keys);
+	}
+
+	private boolean cacheIsValid(Cache cache) {
+		return null != cache && !cache.isClosed();
 	}
 
 	@Override
-	public void put(String key, ByteArrayOutputStream data, JcrRefreshPolicy refreshPolicy) {
-		Cache cache = findCache();
-		try {
-			cache.putInCache(key, data, refreshPolicy);
-		} finally {
-			// finally block used to make sure that all data binded to the current thread is cleared
-			SilentRemovalNotificator.notifyListeners(cache);
-		}
-		cache.addCacheEventListener(refreshPolicy);
-	}
-
-	@Override
-	public ByteArrayOutputStream get(String resourceType, String key) throws NeedsRefreshException {
+	public ByteArrayOutputStream putOrGet(SlingHttpServletRequest request,
+			ResourceTypeCacheConfiguration resourceTypeCacheConfiguration, MissingCacheEntryCallback callback)
+			throws IOException, ServletException {
 		ByteArrayOutputStream result = null;
-		try {
-			result = (ByteArrayOutputStream) findCache().getFromCache(key);
 
-			if (log.isInfoEnabled()) {
-				log.info("Cache hit. Key " + key + " found");
-			}
+		Cache<String, ByteArrayOutputStream> cache = findOrCreateCacheFrom(resourceTypeCacheConfiguration);
 
-			statistics.cacheHit(resourceType);
-		} catch (NeedsRefreshException x) {
-
-			if (log.isInfoEnabled()) {
-				log.info("Cache miss. New cahe entry, cache stale or cache scope flused for key " + key);
-			}
-
-			statistics.cacheMiss(resourceType, key, new DeleteAction(this, key));
-			throw x;
+		final String key = cacheKeyGenerator.generateKey(request, resourceTypeCacheConfiguration);
+		if (null != cache) {
+			result = cache.get(key);
 		}
+
+		if (null == result) {
+			logger.info("Key {} not in cache, generating content...", key);
+			result = callback.doCallback();
+			if (null != cache) {
+				cache.put(key, result);
+				logger.debug("Key {} added to {} cache.", key, cache.getName());
+				guardCollectionWatcher.addGuard(
+						ExpiryGuard.createDeletingExpiryGuard(this, resourceTypeCacheConfiguration, key));
+			}
+		}
+
 		return result;
 	}
 
-	private Cache findCache() {
-		return cacheAdministrator.getAppScopeCache(servletContext);
+	private Cache<String, ByteArrayOutputStream> findOrCreateCacheFrom(
+			CacheConfigurationEntry cacheConfigurationEntry) {
+		final String cacheName = cacheConfigurationEntry.getResourceType();
+
+		Cache<String, ByteArrayOutputStream> cache = findCacheFor(cacheName);
+		if (null == cache) {
+			if (resourceTypeCacheDefinitions.containsKey(cacheName)) {
+				logger.warn("{} cache was missing. Creating cache...", cacheName);
+				cache = createOrRecreateCache(cacheConfigurationEntry);
+			} else {
+				logger.error("Resource type with {} was not defined. Cache could not be created.", cacheName);
+			}
+		}
+
+		return cache;
 	}
 
 	@Override
-	public void remove(String key) {
-		findCache().removeEntry(key);
+	public void remove(String cacheName, String key) {
+		Cache<String, ByteArrayOutputStream> cache = findCacheFor(cacheName);
+		if (cacheIsValid(cache)) {
+			guardCollectionWatcher.removeGuard(cacheName, key);
+			cache.remove(key);
+		} else {
+			logger.warn("Could not remove element {}. Cache {} does not exist or was closed.", key, cacheName);
+		}
 	}
 
 	@Override
-	public void destroy() {
-		statistics.clearStatistics();
-		ServletCacheAdministrator.destroyInstance(servletContext);
-		cacheAdministrator = null;
-		if (log.isInfoEnabled()) {
-			log.info("Instance of servlet cache administrator was destroyed");
+	public void clear(String cacheName) {
+		Cache<String, ByteArrayOutputStream> cache = findCacheFor(cacheName);
+		if (cacheIsValid(cache)) {
+			guardCollectionWatcher.removeGuards(cacheName);
+			cache.clear();
+		} else {
+			logger.warn("Could not clear cache. Cache {} does not exist or was closed.", cacheName);
 		}
 	}
 
 	@Deactivate
 	protected void deactivate() {
-		destroy();
-		cacheManager.close();
+		guardCollectionWatcher.clearGarnison();
+		if (!cacheManager.isClosed()) {
+			cacheManager.close();
+		}
 	}
 }
