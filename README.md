@@ -33,10 +33,10 @@ Cache filter can be configured in two places: in the OSGi console (filter config
 OSGi console allows to modify the following properties:
 
 * Enabled - enables/disables cache filter
+* Duration - Maximum default time (in seconds) after which cache entry must be refreshed
+* Path aliases - define aliases for paths, syntax ```$<alias name>|<path 1>|<path 2>|...```, where ```$``` is a mandatory character before alias name, and ```|``` is a separator between paths
 * Memory - store cache in memory/on disk
 * Capacity - cache capacity
-* Algorithm - cache entry removal algorithm
-* Duration - Maximum default time (in seconds) after which cache entry must be refreshed
 
 For other properties see the [OSCache docs](http://svn.apache.org/repos/asf/db/ojb/trunk/src/config/oscache.properties).
 
@@ -51,6 +51,7 @@ OSGi console allows to add configuration per component/resource type.
 | Validity time (cache.config.validity.time) | integer | no | specifies cache entry validity time (in seconds) | duration property read from the OSGi console |
 | Cache level (cache.config.cache.level) | String | no | specifies the level of component caching | -1 |
 | Invalidate on self (cache.config.invalidate.on.self) | boolean | no | when set to true cached instance will be refreshed if it has been changed | true |
+| Invalidate on containing page (cache.config.invalidate.on.containing.page) | boolean | no | when set to true cached instance will be refreshed when something will change on page containing cached instance | true |
 | Invalidate on referenced fields (cache.config.invalidate.on.referenced.fields) | String[] | no       | List of component fields that store links to content/configuration/etc. pages. Links from those fields are loaded and each content change inside nodes pointed to by those links will invalidate cache of the current component | empty list |
 | Invalidate on paths (cache.config.invalidate.on.paths) | String[] | no | List of paths (regular expressions). If a path of any changed JCR node matches any path from the list then the cache of the current component is invalidated | empty list |
 
@@ -59,24 +60,6 @@ Allowed values for the `Cache level`:
 * -1 - Each instance is cached separately (resource path is used to create cache key).
 * 0 - There is only one instance of the component on the whole site. To determine which instance is cached, the first-renderer rule applies (the first rednered component is cached and used on other pages)
 * any positive value - Component is cached per path. The value of cache level determines how many parts of the request URI (separated by the "/" character) will be used to generate cache key. For example, when this value is set to 3 and the path is /content/acme/en_gb/home.html, then only "/content/acme/en_gb" will be used to generate the key meaning that component will be cached per language.
-
-## Cache tag
-
-### General description
-
-The cache tag can be used to cache a part (or the whole) of a jsp page. The benefit of cache tag is that it can cache more than one component at once and it can be used inside conditional tags (e.g. `<c:if>`). The downside of cache tag is that cache tags can be defined and configured only by developers.
-
-### Configuration
-
-Cache tag uses the same cache as the component filter so it also uses filter's configuration.
-Cache tag has the following properties:
-
-| name              | required | description | default value |
-| ----------------- | -------- | ----------- | ------------- |
-| key               | yes      | prefix of the generated cache key | - |
-| cacheLevel        | no       | cache level used to generate cache key, works the same as cacheLevel value stored inside .content.xml files | -1 |
-| invalidationSelf  | no       | should cache be invalidated if current page content is changed | true |
-| invalidationPaths | no       | a semicolon separated list of paths that will be used to construct JCR event based refresh policy | empty list |
 
 ## TODOs
 

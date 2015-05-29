@@ -15,16 +15,13 @@
  */
 package com.cognifide.cq.cache.filter.osgi;
 
-import java.util.Properties;
-
 public interface CacheConfiguration {
 
 	boolean isEnabled();
 
-	String getKey();
+	int getMaxEntriesInCache();
 
-	int getDuration();
+	int getValidityTimeInSeconds();
 
-	Properties getCacheProperties();
-
+	String getEvictionPolicy();
 }

@@ -30,7 +30,7 @@ public class ResourceTypeCacheConfiguration extends CacheConfigurationEntryImpl 
 	public ResourceTypeCacheConfiguration(ResourceTypeCacheDefinition resourceTypeCacheDefinition,
 			CacheConfiguration cacheConfiguration, PathAliasStore pathAliasStore) {
 		super(resourceTypeCacheDefinition.getResourceType(),
-				OsgiUtil.toInteger(resourceTypeCacheDefinition.getValidityTimeInSeconds(), cacheConfiguration.getDuration()),
+				OsgiUtil.toInteger(resourceTypeCacheDefinition.getValidityTimeInSeconds(), cacheConfiguration.getValidityTimeInSeconds()),
 				resourceTypeCacheDefinition.getCacheLevel());
 
 		this.enabled = resourceTypeCacheDefinition.isEnabled();

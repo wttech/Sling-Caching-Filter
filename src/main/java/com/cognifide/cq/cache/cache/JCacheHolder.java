@@ -2,11 +2,11 @@ package com.cognifide.cq.cache.cache;
 
 import com.cognifide.cq.cache.cache.callback.MissingCacheEntryCallback;
 import com.cognifide.cq.cache.cache.listener.CacheGuardListenerConfiguration;
+import com.cognifide.cq.cache.definition.CacheConfigurationEntry;
 import com.cognifide.cq.cache.definition.ResourceTypeCacheDefinition;
 import com.cognifide.cq.cache.expiry.collection.GuardCollectionWatcher;
 import com.cognifide.cq.cache.expiry.guard.ExpiryGuard;
 import com.cognifide.cq.cache.filter.osgi.CacheConfiguration;
-import com.cognifide.cq.cache.definition.CacheConfigurationEntry;
 import com.cognifide.cq.cache.model.ResourceTypeCacheConfiguration;
 import com.cognifide.cq.cache.model.key.CacheKeyGenerator;
 import com.cognifide.cq.cache.model.key.CacheKeyGeneratorImpl;
@@ -32,6 +32,7 @@ import javax.cache.expiry.ExpiryPolicy;
 import javax.cache.expiry.TouchedExpiryPolicy;
 import javax.cache.spi.CachingProvider;
 import javax.servlet.ServletException;
+import net.sf.ehcache.config.Configuration;
 import org.apache.commons.lang.StringUtils;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
@@ -82,8 +83,19 @@ public class JCacheHolder implements CacheHolder {
 			Caching.setDefaultClassLoader(getClass().getClassLoader());
 			CachingProvider cachingProvider = Caching.getCachingProvider(CACHING_PROVIDER);
 			cacheManager = cachingProvider.getCacheManager();
+			configureCacheManagerVendorSpecific();
 			logger.info("Cache manager {} was created.", cacheManager.getURI());
 		}
+	}
+
+	private void configureCacheManagerVendorSpecific() {
+		net.sf.ehcache.config.CacheConfiguration ehcacheConfiguration = new net.sf.ehcache.config.CacheConfiguration();
+		ehcacheConfiguration.setMaxEntriesInCache(cacheConfiguration.getMaxEntriesInCache());
+		ehcacheConfiguration.setMaxEntriesLocalDisk(cacheConfiguration.getMaxEntriesInCache());
+		ehcacheConfiguration.setMaxEntriesLocalHeap(cacheConfiguration.getMaxEntriesInCache());
+		ehcacheConfiguration.setMemoryStoreEvictionPolicy(cacheConfiguration.getEvictionPolicy());
+		Configuration configuration = cacheManager.unwrap(net.sf.ehcache.CacheManager.class).getConfiguration();
+		configuration.setDefaultCacheConfiguration(ehcacheConfiguration);
 	}
 
 	public synchronized void bindResourceTypeCacheDefinition(ResourceTypeCacheDefinition resourceTypeCacheDefinition) {
@@ -144,7 +156,7 @@ public class JCacheHolder implements CacheHolder {
 	private Factory<? extends ExpiryPolicy> createExpiryPolicyFactory(
 			CacheConfigurationEntry cacheConfigurationEntry) {
 		Integer validityTimeInSeconds = null == cacheConfigurationEntry.getValidityTimeInSeconds()
-				? cacheConfiguration.getDuration() : cacheConfigurationEntry.getValidityTimeInSeconds();
+				? cacheConfiguration.getValidityTimeInSeconds() : cacheConfigurationEntry.getValidityTimeInSeconds();
 		Duration duration = new Duration(TimeUnit.SECONDS, validityTimeInSeconds);
 		return new FactoryBuilder.SingletonFactory<ExpiryPolicy>(new TouchedExpiryPolicy(duration));
 	}

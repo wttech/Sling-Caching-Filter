@@ -83,7 +83,8 @@ public class StatisticEntry {
 	}
 
 	public float getCacheHitPercentage() {
-		return cacheHitPercentage;
+		long hits = cacheHits + cacheMisses;
+		return 0L == hits ? 0.0f : (cacheHits / (float) (hits)) * 100.0f;
 	}
 
 	public float getCacheMissPercentage() {
