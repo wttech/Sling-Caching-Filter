@@ -16,7 +16,7 @@
 package com.cognifide.cq.cache.plugins.statistics.action;
 
 /**
- * Action executed on statistics
+ * Action executed when statistics are shown
  */
 public interface StatisticsAction {
 

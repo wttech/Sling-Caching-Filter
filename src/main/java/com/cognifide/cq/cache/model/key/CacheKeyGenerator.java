@@ -10,5 +10,12 @@ import org.apache.sling.api.SlingHttpServletRequest;
  */
 public interface CacheKeyGenerator {
 
+	/**
+	 * Generates key based on given request and cache configuration entry
+	 *
+	 * @param request
+	 * @param cacheConfigurationEntry
+	 * @return generated key
+	 */
 	String generateKey(SlingHttpServletRequest request, CacheConfigurationEntry cacheConfigurationEntry);
 }

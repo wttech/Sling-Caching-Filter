@@ -17,11 +17,31 @@ package com.cognifide.cq.cache.filter.osgi;
 
 public interface CacheConfiguration {
 
+	/**
+	 * Controls cache availability
+	 *
+	 * @return true if cache should be enabled, false otherwise
+	 */
 	boolean isEnabled();
 
+	/**
+	 * Max entries that cache can hold
+	 *
+	 * @return max entries in cache
+	 */
 	int getMaxEntriesInCache();
 
+	/**
+	 * Time after element in cache will be invalid
+	 *
+	 * @return validity time in seconds
+	 */
 	int getValidityTimeInSeconds();
 
+	/**
+	 * Returns eviction policy name, value depends on used provider
+	 *
+	 * @return eviction policy
+	 */
 	String getEvictionPolicy();
 }

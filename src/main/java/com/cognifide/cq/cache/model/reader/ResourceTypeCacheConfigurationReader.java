@@ -18,7 +18,6 @@ public interface ResourceTypeCacheConfigurationReader {
 	 * the requested resource.
 	 *
 	 * @param request
-	 * @param defaultTime
 	 * @return
 	 */
 	ResourceTypeCacheConfiguration readComponentConfiguration(SlingHttpServletRequest request);

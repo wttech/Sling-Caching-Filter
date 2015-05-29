@@ -28,24 +28,28 @@ public interface CacheHolder {
 
 	/**
 	 *
-	 * @return
+	 * @return cache manager uri
 	 */
 	URI getCacheManagerURI();
 
 	/**
+	 * Collects names of all caches
 	 *
-	 * @return
+	 * @return iterable of cache names
 	 */
 	Iterable<String> getCacheNames();
 
 	/**
+	 * Collects all keys for given cache
 	 *
 	 * @param cacheName
-	 * @return
+	 * @return collections of keys
 	 */
 	Collection<String> getKeysFor(String cacheName);
 
 	/**
+	 * Gets element from cache. Cache and key are generated based on current resource and resource type. If element does
+	 * not exist in cache callback method is used to generate content.
 	 *
 	 * @param request
 	 * @param resourceTypeCacheConfiguration
@@ -59,6 +63,7 @@ public interface CacheHolder {
 			throws IOException, ServletException;
 
 	/**
+	 * Removes element from cache using given cache name and key
 	 *
 	 * @param cacheName
 	 * @param key
@@ -66,8 +71,9 @@ public interface CacheHolder {
 	void remove(String cacheName, String key);
 
 	/**
+	 * Clears all elements in given cache
 	 *
-	 * @param cacheName
+	 * @param cacheName - cache name
 	 */
 	void clear(String cacheName);
 }
