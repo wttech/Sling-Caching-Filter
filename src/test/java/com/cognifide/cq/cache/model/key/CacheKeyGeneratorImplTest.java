@@ -1,6 +1,6 @@
-package com.cognifide.cq.cache.model;
+package com.cognifide.cq.cache.model.key;
 
-import com.cognifide.cq.cache.model.key.CacheKeyGeneratorImpl;
+import com.cognifide.cq.cache.definition.CacheConfigurationEntry;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.request.RequestPathInfo;
 import org.apache.sling.api.resource.Resource;
@@ -19,7 +19,11 @@ import org.mockito.junit.MockitoRule;
  */
 public class CacheKeyGeneratorImplTest {
 
-	private static final String PATH = "/some/path";
+	private static final String RESOURCE_PATH = "/resource/path";
+
+	private static final String LONG_RESOURCE_PATH = "/very/long/resource/path";
+
+	private static final String RESOURCE_TYPE_PATH = "/resource/type/path";
 
 	@Mock
 	private SlingHttpServletRequest request;
@@ -28,10 +32,10 @@ public class CacheKeyGeneratorImplTest {
 	private RequestPathInfo requestPathInfo;
 
 	@Mock
-	private ResourceTypeCacheConfiguration resourceTypeCacheConfiguration;
+	private Resource resource;
 
 	@Mock
-	private Resource resource;
+	private CacheConfigurationEntry cacheConfigurationEntry;
 
 	private CacheKeyGeneratorImpl testedObject;
 
@@ -49,15 +53,15 @@ public class CacheKeyGeneratorImplTest {
 	@Test
 	public void testGenerateKeyFromResourceWithNegativeCacheLevel() {
 		//given
-		setUpResource("/some/path", null);
+		setUpResource(RESOURCE_PATH, null);
 		setUpSelectorString("text.txt");
-		when(resourceTypeCacheConfiguration.getCacheLevel()).thenReturn(-1);
+		when(cacheConfigurationEntry.getCacheLevel()).thenReturn(-1);
 
 		//then
-		String actual = testedObject.generateKey(request, resourceTypeCacheConfiguration);
+		String actual = testedObject.generateKey(request, cacheConfigurationEntry);
 
 		//then
-		assertThat(actual, is("/some/path.text.txt"));
+		assertThat(actual, is("/resource/path.text.txt"));
 	}
 
 	private void setUpResource(String resourcePath, String resourceType) {
@@ -72,39 +76,39 @@ public class CacheKeyGeneratorImplTest {
 	@Test
 	public void testGenerateKeyFromResourceWithZeroCacheLevel() {
 		//given
-		setUpResource(null, "/some/resource/path");
-		when(resourceTypeCacheConfiguration.getCacheLevel()).thenReturn(0);
+		setUpResource(null, RESOURCE_TYPE_PATH);
+		when(cacheConfigurationEntry.getCacheLevel()).thenReturn(0);
 
 		//when
-		String actual = testedObject.generateKey(request, resourceTypeCacheConfiguration);
+		String actual = testedObject.generateKey(request, cacheConfigurationEntry);
 
 		//then
-		assertThat(actual, is("/some/resource/path"));
+		assertThat(actual, is(RESOURCE_TYPE_PATH));
 	}
 
 	@Test
 	public void testGenerateKeyFromResourceWithPositiveCacheLevel2() {
 		//given
-		setUpResource("/some/resource/path", "/some/resource/type/path");
+		setUpResource(RESOURCE_PATH, RESOURCE_TYPE_PATH);
 		setUpSelectorString("txt");
-		when(resourceTypeCacheConfiguration.getCacheLevel()).thenReturn(2);
+		when(cacheConfigurationEntry.getCacheLevel()).thenReturn(2);
 
-		String actual = testedObject.generateKey(request, resourceTypeCacheConfiguration);
+		String actual = testedObject.generateKey(request, cacheConfigurationEntry);
 
 		//then
-		assertThat(actual, is("/some/resource/type/path/some/resource.txt"));
+		assertThat(actual, is("/resource/type/path/resource/path.txt"));
 	}
 
 	@Test
 	public void testGenerateKeyFromResourceWithPositiveCacheLevel3() {
 		//given
-		setUpResource("/some/resource/path", "some/resource/type/path");
-		when(resourceTypeCacheConfiguration.getCacheLevel()).thenReturn(3);
+		setUpResource(LONG_RESOURCE_PATH, "resource/type/path");
+		when(cacheConfigurationEntry.getCacheLevel()).thenReturn(3);
 
 		//when
-		String actual = testedObject.generateKey(request, resourceTypeCacheConfiguration);
+		String actual = testedObject.generateKey(request, cacheConfigurationEntry);
 
 		//then
-		assertThat(actual, is("/apps/some/resource/type/path/some/resource/path"));
+		assertThat(actual, is("/apps/resource/type/path/very/long/resource"));
 	}
 }

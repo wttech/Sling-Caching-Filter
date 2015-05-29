@@ -1,7 +1,10 @@
 package com.cognifide.cq.cache.definition.osgi;
 
 import com.cognifide.cq.cache.definition.ResourceTypeCacheDefinition;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
+import java.util.List;
 import org.apache.commons.lang.StringUtils;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
@@ -25,6 +28,8 @@ public class OsgiResourceTypeCacheDefinition implements ResourceTypeCacheDefinit
 	private static final int INT_CACHE_LEVEL_PROPERTY_DEFAULT_VALUE = Integer.parseInt(CACHE_LEVEL_PROPERTY_DEFAULT_VALUE);
 
 	private static final boolean INVALIDATE_ON_SELF_PROPERTY_DEFAULT_VALUE = true;
+
+	private static final boolean INVALIDATE_ON_CONTAINING_PAGE_PROPERTY_DEFAULT_VALUE = false;
 
 	@Property(
 			label = "Active",
@@ -55,13 +60,19 @@ public class OsgiResourceTypeCacheDefinition implements ResourceTypeCacheDefinit
 	private static final String INVALIDATE_ON_SELF_PROPERTY = "cache.config.invalidate.on.self";
 
 	@Property(
+			label = "Invalidate on containing page",
+			description = "When set to true cached instance will be refreshed if page containing this instance has been changed",
+			boolValue = INVALIDATE_ON_CONTAINING_PAGE_PROPERTY_DEFAULT_VALUE)
+	private static final String INVALIDATE_ON_CONTAINING_PAGE_PROPERTY = "cache.config.invalidate.on.containing.page";
+
+	@Property(
 			label = "Invalidate on referenced fields",
 			description = "List of component fields that store links to content/configuration/etc. pages. Links from those fields are loaded and each content change inside nodes pointed to by those links will invalidate cache of the current component",
 			unbounded = PropertyUnbounded.ARRAY)
 	private static final String INVALIDATE_ON_REFERENCED_FIELDS_PROPERTY = "cache.config.invalidate.on.referenced.fields";
 
 	@Property(
-			label = "Invalide on paths",
+			label = "Invalide on paths (Regex)",
 			description = "If a path of any changed JCR node mathes any path from the list then the cache of the current component is invalidated",
 			unbounded = PropertyUnbounded.ARRAY)
 	private static final String INVALIDATE_ON_PATHS_PROPERTY = "cache.config.invalidate.on.paths";
@@ -76,6 +87,8 @@ public class OsgiResourceTypeCacheDefinition implements ResourceTypeCacheDefinit
 
 	private Boolean invalidateOnSelf;
 
+	private Boolean invalidateOnContainingPage;
+
 	private String[] invalidateOnReferencedFields;
 
 	private String[] invalidateOnPaths;
@@ -87,8 +100,24 @@ public class OsgiResourceTypeCacheDefinition implements ResourceTypeCacheDefinit
 		validityTime = OsgiConfigurationHelper.getIntegerValueFrom(VALIDITY_TIME_PROPERTY, componentContext);
 		cacheLevel = OsgiConfigurationHelper.getStringValueFrom(CACHE_LEVEL_PROPERTY, componentContext);
 		invalidateOnSelf = OsgiConfigurationHelper.getBooleanValueFrom(INVALIDATE_ON_SELF_PROPERTY, componentContext);
+		invalidateOnContainingPage = OsgiConfigurationHelper.getBooleanValueFrom(INVALIDATE_ON_CONTAINING_PAGE_PROPERTY, componentContext);
 		invalidateOnReferencedFields = OsgiConfigurationHelper.getStringArrayValuesFrom(INVALIDATE_ON_REFERENCED_FIELDS_PROPERTY, componentContext);
 		invalidateOnPaths = OsgiConfigurationHelper.getStringArrayValuesFrom(INVALIDATE_ON_PATHS_PROPERTY, componentContext);
+
+		clean(invalidateOnReferencedFields);
+		clean(invalidateOnPaths);
+	}
+
+	private String[] clean(String[] array) {
+		List<String> list = new ArrayList<String>(Arrays.asList(array));
+		Iterator<String> iterator = list.iterator();
+		while (iterator.hasNext()) {
+			String value = iterator.next();
+			if (StringUtils.isBlank(value)) {
+				iterator.remove();
+			}
+		}
+		return list.toArray(new String[list.size()]);
 	}
 
 	@Override
@@ -120,6 +149,11 @@ public class OsgiResourceTypeCacheDefinition implements ResourceTypeCacheDefinit
 	@Override
 	public Boolean isInvalidateOnSelf() {
 		return invalidateOnSelf;
+	}
+
+	@Override
+	public Boolean isInvalidateOnContainingPage() {
+		return invalidateOnContainingPage;
 	}
 
 	@Override

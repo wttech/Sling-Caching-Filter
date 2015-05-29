@@ -4,16 +4,21 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.regex.Pattern;
+import org.apache.commons.lang.StringUtils;
+import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
+import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Service;
 
-@Component(immediate = true)
 @Service
+@Component
 public class PathAliasStoreImpl implements PathAliasStore {
 
-	private final Map<String, PathAlias> aliases;
+	private Map<String, PathAlias> aliases;
 
-	public PathAliasStoreImpl() {
+	@Activate
+	protected void activate() {
 		aliases = new HashMap<String, PathAlias>();
 	}
 
@@ -23,29 +28,26 @@ public class PathAliasStoreImpl implements PathAliasStore {
 	}
 
 	@Override
-	public Collection<String> getPathsForAlias(String aliasName) {
-		Collection<String> paths = Collections.emptySet();
-		if (aliasName != null) {
+	public Collection<Pattern> getPathsForAlias(String aliasName) {
+		Collection<Pattern> paths = Collections.emptySet();
+		if (StringUtils.isNotEmpty(aliasName)) {
 			PathAlias pathAlias = aliases.get(aliasName);
-			paths = pathAlias.getPaths();
+			if (null != pathAlias) {
+				paths = pathAlias.getPaths();
+			}
 		}
 		return paths;
 	}
 
 	@Override
-	public void addAlias(PathAlias alias) {
-		aliases.put(alias.getName(), alias);
-	}
-
-	@Override
-	public void addAliases(Collection<PathAlias> aliases) {
-		for (PathAlias alias : aliases) {
-			addAlias(alias);
+	public void addAliases(Collection<PathAlias> pathAliases) {
+		for (PathAlias pathAlias : pathAliases) {
+			aliases.put(pathAlias.getName(), pathAlias);
 		}
 	}
 
-	@Override
-	public void clear() {
+	@Deactivate
+	protected void deactivate() {
 		aliases.clear();
 	}
 }

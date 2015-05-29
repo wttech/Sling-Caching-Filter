@@ -69,13 +69,8 @@ public class GuardCollection implements GuardCollectionWalker, GuardCollectionWa
 		}
 	}
 
-	@Override
-	public void clearGarnison() {
-		guards.clear();
-	}
-
 	@Deactivate
 	protected void deactivate() {
-		clearGarnison();
+		guards.clear();
 	}
 }

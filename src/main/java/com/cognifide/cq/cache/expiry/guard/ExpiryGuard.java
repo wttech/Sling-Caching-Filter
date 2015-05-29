@@ -15,20 +15,24 @@
  */
 package com.cognifide.cq.cache.expiry.guard;
 
-import com.cognifide.cq.cache.expiry.guard.action.GuardAction;
-import com.cognifide.cq.cache.expiry.guard.action.DeleteAction;
 import com.cognifide.cq.cache.cache.CacheHolder;
+import com.cognifide.cq.cache.expiry.guard.action.DeleteAction;
+import com.cognifide.cq.cache.expiry.guard.action.GuardAction;
 import com.cognifide.cq.cache.model.ResourceTypeCacheConfiguration;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.regex.Pattern;
+import org.apache.sling.api.SlingHttpServletRequest;
 
 public class ExpiryGuard {
 
-	public static ExpiryGuard createDeletingExpiryGuard(CacheHolder cacheHolder, ResourceTypeCacheConfiguration resourceTypeCacheConfiguration, String key) {
+	public static ExpiryGuard createDeletingExpiryGuard(SlingHttpServletRequest request, CacheHolder cacheHolder,
+			ResourceTypeCacheConfiguration resourceTypeCacheConfiguration, String key) {
 		final String cacheName = resourceTypeCacheConfiguration.getResourceType();
 		ExpiryGuard expiryGuard = new ExpiryGuard(cacheName, key, new DeleteAction(cacheHolder, cacheName, key));
+
+		resourceTypeCacheConfiguration.generateInvalidationPathsFor(request);
 		expiryGuard.addInvlidatePathsFrom(resourceTypeCacheConfiguration);
+
 		return expiryGuard;
 	}
 
@@ -38,7 +42,9 @@ public class ExpiryGuard {
 
 	private final GuardAction guardAction;
 
-	private final List<Pattern> invalidatePaths;
+	private Iterable<String> invalidationPathPrefixes;
+
+	private Iterable<Pattern> invalidationPatterns;
 
 	private boolean expired;
 
@@ -47,7 +53,7 @@ public class ExpiryGuard {
 		this.key = key;
 		this.guardAction = guardAction;
 
-		this.invalidatePaths = new ArrayList<Pattern>(8);
+		this.invalidationPathPrefixes = new ArrayList<String>(8);
 		this.expired = false;
 	}
 
@@ -60,21 +66,32 @@ public class ExpiryGuard {
 	}
 
 	public void addInvlidatePathsFrom(ResourceTypeCacheConfiguration resourceTypeCacheConfiguration) {
-		this.invalidatePaths.addAll(resourceTypeCacheConfiguration.getInvalidatePaths());
-		this.invalidatePaths.add(Pattern.compile(resourceTypeCacheConfiguration.getResourceTypePath() + ".*"));
+		this.invalidationPathPrefixes = resourceTypeCacheConfiguration.getInvalidationPathPrefixes();
+		this.invalidationPatterns = resourceTypeCacheConfiguration.getInvalidationPatterns();
 	}
 
 	public void onContentChange(String path) {
+		invalidatePathPrefixes(path);
+	}
+
+	private void invalidatePathPrefixes(String path) {
 		if (!expired) {
-			invalidate(path);
+			for (String invalidationPathPrefix : invalidationPathPrefixes) {
+				if (path.startsWith(invalidationPathPrefix)) {
+					expired = true;
+					break;
+				}
+			}
 		}
 	}
 
-	private void invalidate(String path) {
-		for (Pattern invalidatePath : invalidatePaths) {
-			if (invalidatePath.matcher(path).matches()) {
-				expired = true;
-				break;
+	private void invalidatePatterns(String path) {
+		if (!expired) {
+			for (Pattern invalidationPattern : invalidationPatterns) {
+				if (invalidationPattern.matcher(path).find()) {
+					expired = true;
+					break;
+				}
 			}
 		}
 	}

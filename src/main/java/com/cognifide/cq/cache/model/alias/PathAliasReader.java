@@ -3,10 +3,14 @@ package com.cognifide.cq.cache.model.alias;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.regex.Pattern;
-
+import java.util.regex.PatternSyntaxException;
 import org.apache.commons.lang.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class PathAliasReader {
+
+	private static final Logger logger = LoggerFactory.getLogger(PathAliasReader.class);
 
 	private static final Pattern ALIAS_NAME_PATTERN = Pattern.compile("^\\$[\\w_-]+$");
 
@@ -29,31 +33,38 @@ public class PathAliasReader {
 		if ((tokens != null) && (tokens.length > 1)) {
 			String aliasName = tokens[0];
 			if (isAliasNameValid(aliasName)) {
-				Set<String> paths = getPaths(tokens);
-				if (paths.size() > 0) {
-					alias = new PathAlias(aliasName, paths);
+				Set<Pattern> patterns = readPaths(tokens);
+				if (patterns.size() > 0) {
+					alias = new PathAlias(aliasName, patterns);
 				}
 			}
 		}
 		return alias;
 	}
 
-	private Set<String> getPaths(String[] tokens) {
-		Set<String> paths = new HashSet<String>();
+	private boolean isAliasNameValid(String aliasName) {
+		return ALIAS_NAME_PATTERN.matcher(aliasName).matches();
+	}
+
+	private Set<Pattern> readPaths(String[] tokens) {
+		Set<Pattern> patterns = new HashSet<Pattern>();
 		for (int i = 1; i < tokens.length; i++) {
 			if (isPathValid(tokens[i])) {
-				paths.add(tokens[i]);
+				tryToAddPattern(patterns, tokens[i]);
 			}
 		}
-		return paths;
+		return patterns;
+	}
+
+	private void tryToAddPattern(Set<Pattern> patterns, String path) {
+		try {
+			patterns.add(Pattern.compile(path));
+		} catch (PatternSyntaxException x) {
+			logger.error("Pattern " + path + " is invalid.", x);
+		}
 	}
 
 	private boolean isPathValid(String path) {
 		return StringUtils.isNotBlank(path);
 	}
-
-	private boolean isAliasNameValid(String aliasName) {
-		return ALIAS_NAME_PATTERN.matcher(aliasName).matches();
-	}
-
 }

@@ -9,7 +9,4 @@ public interface GuardCollectionWatcher {
 	void removeGuards(String cacheName);
 
 	void removeGuard(String cacheName, String key);
-
-	void clearGarnison();
-
 }

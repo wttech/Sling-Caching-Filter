@@ -8,10 +8,6 @@ public class OsgiConfigurationHelper {
 
 	private static final String[] EMPTY_ARRAY = new String[0];
 
-	private OsgiConfigurationHelper() {
-		throw new AssertionError();
-	}
-
 	public static String getStringValueFrom(String propertyName, ComponentContext componentContext) {
 		return OsgiUtil.toString(getProperty(propertyName, componentContext), StringUtils.EMPTY);
 	}
@@ -42,5 +38,9 @@ public class OsgiConfigurationHelper {
 
 	private static Object getProperty(String propertyName, ComponentContext componentContext) {
 		return componentContext.getProperties().get(propertyName);
+	}
+
+	private OsgiConfigurationHelper() {
+		throw new AssertionError();
 	}
 }

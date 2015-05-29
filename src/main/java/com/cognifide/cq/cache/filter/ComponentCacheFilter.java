@@ -9,18 +9,15 @@ import java.io.IOException;
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
 import javax.servlet.FilterConfig;
-import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletResponse;
-import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.sling.SlingFilter;
 import org.apache.felix.scr.annotations.sling.SlingFilterScope;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.resource.Resource;
-import org.osgi.service.component.ComponentContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,13 +33,6 @@ public class ComponentCacheFilter implements Filter {
 
 	private static final Logger logger = LoggerFactory.getLogger(ComponentCacheFilter.class);
 
-	// Cache config keys
-	public static final String SERVLET_CONTEXT_CACHE_ENABLED = ComponentCacheFilter.class.getName()
-			+ ".cache.enabled";
-
-	public static final String SERVLET_CONTEXT_CACHE_DURATION = ComponentCacheFilter.class.getName()
-			+ ".cache.duration";
-
 	@Reference
 	private ResourceTypeCacheConfigurationReader configurationReader;
 
@@ -52,35 +42,9 @@ public class ComponentCacheFilter implements Filter {
 	@Reference
 	private CacheConfiguration cacheConfiguration;
 
-	private ServletContext servletContext;
-
 	@Override
 	public void init(FilterConfig filterConfig) {
-		logger.info("Initializing {}", getClass());
-		servletContext = filterConfig.getServletContext();
-		setServletContextAttributes();
-	}
-
-	private void setServletContextAttributes() {
-		if (cacheConfiguration.isEnabled()) {
-			servletContext.setAttribute(SERVLET_CONTEXT_CACHE_ENABLED, Boolean.TRUE);
-			servletContext.setAttribute(SERVLET_CONTEXT_CACHE_DURATION, cacheConfiguration.getDuration());
-		} else {
-			servletContext.setAttribute(SERVLET_CONTEXT_CACHE_ENABLED, Boolean.FALSE);
-		}
-	}
-
-	@Activate
-	protected void activate(ComponentContext context) {
-		logger.info("Activate {}", getClass());
-		// first time activate is called before init, so servletContext is null
-		if (servletContext != null) {
-			setServletContextAttributes();
-		}
-	}
-
-	@Override
-	public void destroy() {
+		logger.info("Initializing Sling Caching Filter...");
 	}
 
 	@Override
@@ -106,11 +70,11 @@ public class ComponentCacheFilter implements Filter {
 	private void handleRequest(SlingHttpServletRequest request, ServletResponse response, FilterChain chain)
 			throws IOException, ServletException {
 		if (configurationReader.hasConfigurationFor(request)) {
-			ResourceTypeCacheConfiguration componentCacheConfiguration
+			ResourceTypeCacheConfiguration resourceTypeCacheConfiguration
 					= configurationReader.readComponentConfiguration(request);
 
-			if (null != componentCacheConfiguration && componentCacheConfiguration.isEnabled()) {
-				cacheRequestedResource(request, response, chain, componentCacheConfiguration);
+			if (null != resourceTypeCacheConfiguration && resourceTypeCacheConfiguration.isEnabled()) {
+				cacheRequestedResource(request, response, chain, resourceTypeCacheConfiguration);
 			} else {
 				if (logger.isInfoEnabled()) {
 					logger.info("Caching is disabled for {}", request.getResource().getResourceType());
@@ -135,5 +99,10 @@ public class ComponentCacheFilter implements Filter {
 		byte[] result = cacheHolder.putOrGet(request, cacheConfiguration,
 				new ResponseCallback(chain, request, (HttpServletResponse) response)).toByteArray();
 		response.getWriter().write(new String(result, response.getCharacterEncoding()));
+	}
+
+	@Override
+	public void destroy() {
+		logger.info("Destroying Sling Caching Filter...");
 	}
 }

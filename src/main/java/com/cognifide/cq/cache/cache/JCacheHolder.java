@@ -1,11 +1,12 @@
 package com.cognifide.cq.cache.cache;
 
+import com.cognifide.cq.cache.cache.callback.MissingCacheEntryCallback;
+import com.cognifide.cq.cache.cache.listener.CacheGuardListenerConfiguration;
 import com.cognifide.cq.cache.definition.ResourceTypeCacheDefinition;
 import com.cognifide.cq.cache.expiry.collection.GuardCollectionWatcher;
 import com.cognifide.cq.cache.expiry.guard.ExpiryGuard;
-import com.cognifide.cq.cache.cache.callback.MissingCacheEntryCallback;
 import com.cognifide.cq.cache.filter.osgi.CacheConfiguration;
-import com.cognifide.cq.cache.model.CacheConfigurationEntry;
+import com.cognifide.cq.cache.definition.CacheConfigurationEntry;
 import com.cognifide.cq.cache.model.ResourceTypeCacheConfiguration;
 import com.cognifide.cq.cache.model.key.CacheKeyGenerator;
 import com.cognifide.cq.cache.model.key.CacheKeyGeneratorImpl;
@@ -107,7 +108,6 @@ public class JCacheHolder implements CacheHolder {
 	private void deleteCache(String cacheName) {
 		if (StringUtils.isNotEmpty(cacheName) && !cacheManager.isClosed()) {
 			logger.info("Destroying {} cache.", cacheName);
-			guardCollectionWatcher.removeGuards(cacheName);
 			cacheManager.destroyCache(cacheName);
 			logger.debug("Cache {} was destroyed", cacheName);
 		}
@@ -137,7 +137,8 @@ public class JCacheHolder implements CacheHolder {
 				.setTypes(String.class, ByteArrayOutputStream.class)
 				.setStoreByValue(false)
 				.setStatisticsEnabled(true)
-				.setExpiryPolicyFactory(createExpiryPolicyFactory(cacheConfigurationEntry));
+				.setExpiryPolicyFactory(createExpiryPolicyFactory(cacheConfigurationEntry))
+				.addCacheEntryListenerConfiguration(new CacheGuardListenerConfiguration(guardCollectionWatcher));
 	}
 
 	private Factory<? extends ExpiryPolicy> createExpiryPolicyFactory(
@@ -182,7 +183,7 @@ public class JCacheHolder implements CacheHolder {
 		return Collections.unmodifiableSet(keys);
 	}
 
-	private boolean cacheIsValid(Cache cache) {
+	private boolean cacheIsValid(Cache<String, ByteArrayOutputStream> cache) {
 		return null != cache && !cache.isClosed();
 	}
 
@@ -206,7 +207,7 @@ public class JCacheHolder implements CacheHolder {
 				cache.put(key, result);
 				logger.debug("Key {} added to {} cache.", key, cache.getName());
 				guardCollectionWatcher.addGuard(
-						ExpiryGuard.createDeletingExpiryGuard(this, resourceTypeCacheConfiguration, key));
+						ExpiryGuard.createDeletingExpiryGuard(request, this, resourceTypeCacheConfiguration, key));
 			}
 		}
 
@@ -234,7 +235,6 @@ public class JCacheHolder implements CacheHolder {
 	public void remove(String cacheName, String key) {
 		Cache<String, ByteArrayOutputStream> cache = findCacheFor(cacheName);
 		if (cacheIsValid(cache)) {
-			guardCollectionWatcher.removeGuard(cacheName, key);
 			cache.remove(key);
 		} else {
 			logger.warn("Could not remove element {}. Cache {} does not exist or was closed.", key, cacheName);
@@ -245,7 +245,6 @@ public class JCacheHolder implements CacheHolder {
 	public void clear(String cacheName) {
 		Cache<String, ByteArrayOutputStream> cache = findCacheFor(cacheName);
 		if (cacheIsValid(cache)) {
-			guardCollectionWatcher.removeGuards(cacheName);
 			cache.clear();
 		} else {
 			logger.warn("Could not clear cache. Cache {} does not exist or was closed.", cacheName);
@@ -254,7 +253,6 @@ public class JCacheHolder implements CacheHolder {
 
 	@Deactivate
 	protected void deactivate() {
-		guardCollectionWatcher.clearGarnison();
 		if (!cacheManager.isClosed()) {
 			cacheManager.close();
 		}

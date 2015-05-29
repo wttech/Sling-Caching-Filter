@@ -1,4 +1,4 @@
-package com.cognifide.cq.cache.model;
+package com.cognifide.cq.cache.definition;
 
 /**
  * @author Jakub Malecki

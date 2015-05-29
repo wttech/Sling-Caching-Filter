@@ -1,6 +1,6 @@
 package com.cognifide.cq.cache.model.key;
 
-import com.cognifide.cq.cache.model.CacheConfigurationEntry;
+import com.cognifide.cq.cache.definition.CacheConfigurationEntry;
 import org.apache.sling.api.SlingHttpServletRequest;
 
 /**

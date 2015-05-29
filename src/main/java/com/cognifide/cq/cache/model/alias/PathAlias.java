@@ -2,27 +2,28 @@ package com.cognifide.cq.cache.model.alias;
 
 import java.util.Collections;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 public class PathAlias {
 
 	private final String name;
 
-	private final Set<String> paths;
+	private final Set<Pattern> paths;
 
-	public PathAlias(String name, Set<String> paths) {
+	PathAlias(String name, Set<Pattern> paths) {
 		this.name = name;
 		this.paths = paths;
 	}
 
-	public String getName() {
+	String getName() {
 		return name;
 	}
 
-	public Set<String> getPaths() {
+	Set<Pattern> getPaths() {
 		return Collections.unmodifiableSet(paths);
 	}
 
-	public void addPath(String path) {
+	void addPath(Pattern path) {
 		paths.add(path);
 	}
 

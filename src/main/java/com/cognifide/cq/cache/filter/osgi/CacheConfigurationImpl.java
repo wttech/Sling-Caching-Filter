@@ -15,11 +15,9 @@
  */
 package com.cognifide.cq.cache.filter.osgi;
 
-import com.cognifide.cq.cache.model.alias.PathAlias;
 import com.cognifide.cq.cache.model.alias.PathAliasReader;
 import com.cognifide.cq.cache.model.alias.PathAliasStore;
 import java.util.Properties;
-import java.util.Set;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Property;
@@ -167,8 +165,7 @@ public class CacheConfigurationImpl implements CacheConfiguration {
 				DEFAULT_USE_HOST_DOMAIN_IN_KEY);
 		duration = OsgiUtil.toInteger(readProperty(context, PROPERTY_DURATION), DEFAULT_DURATION);
 
-		Set<PathAlias> aliases = new PathAliasReader().readAliases(aliasesStrings);
-		pathAliasStore.addAliases(aliases);
+		pathAliasStore.addAliases(new PathAliasReader().readAliases(aliasesStrings));
 
 		createConfigurationProperties();
 	}

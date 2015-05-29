@@ -1,11 +1,15 @@
 package com.cognifide.cq.cache.model;
 
+import com.cognifide.cq.cache.definition.CacheConfigurationEntryImpl;
 import com.cognifide.cq.cache.definition.ResourceTypeCacheDefinition;
-import java.util.ArrayList;
-import java.util.Collection;
+import com.cognifide.cq.cache.filter.osgi.CacheConfiguration;
+import com.cognifide.cq.cache.model.alias.PathAliasStore;
 import java.util.Collections;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.regex.Pattern;
+import org.apache.commons.lang.StringUtils;
+import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.commons.osgi.OsgiUtil;
 
 /**
@@ -13,59 +17,58 @@ import org.apache.sling.commons.osgi.OsgiUtil;
  */
 public class ResourceTypeCacheConfiguration extends CacheConfigurationEntryImpl {
 
-	private boolean enabled;
+	private final boolean enabled;
 
-	private final List<Pattern> invalidatePaths = new ArrayList<Pattern>();
+	private final ResourceTypeCacheDefinition resourceTypeCacheDefinition;
 
-	private String resourceTypePath;
+	private final PathAliasStore pathAliasStore;
 
-	public ResourceTypeCacheConfiguration(String resourceType, int time) {
-		super(resourceType, time, Integer.MIN_VALUE);
-		enabled = false;
-	}
+	private final Set<String> invalidationPathPrefixes;
 
-	public ResourceTypeCacheConfiguration(String resourceType, int time, int cacheLevel) {
-		super(resourceType, time, cacheLevel);
-	}
+	private final Set<Pattern> invalidationPatterns;
 
-	public ResourceTypeCacheConfiguration(ResourceTypeCacheDefinition resourceTypeCacheDefinition, int defaultTime) {
+	public ResourceTypeCacheConfiguration(ResourceTypeCacheDefinition resourceTypeCacheDefinition,
+			CacheConfiguration cacheConfiguration, PathAliasStore pathAliasStore) {
 		super(resourceTypeCacheDefinition.getResourceType(),
-				OsgiUtil.toInteger(resourceTypeCacheDefinition.getValidityTimeInSeconds(), defaultTime),
+				OsgiUtil.toInteger(resourceTypeCacheDefinition.getValidityTimeInSeconds(), cacheConfiguration.getDuration()),
 				resourceTypeCacheDefinition.getCacheLevel());
+
 		this.enabled = resourceTypeCacheDefinition.isEnabled();
+		this.resourceTypeCacheDefinition = resourceTypeCacheDefinition;
+		this.pathAliasStore = pathAliasStore;
+
+		this.invalidationPathPrefixes = new HashSet<String>();
+		this.invalidationPatterns = new HashSet<Pattern>();
 	}
 
 	public boolean isEnabled() {
 		return enabled;
 	}
 
-	public void setEnabled(boolean enabled) {
-		this.enabled = enabled;
+	public Iterable<String> getInvalidationPathPrefixes() {
+		return Collections.unmodifiableSet(invalidationPathPrefixes);
 	}
 
-	public List<Pattern> getInvalidatePaths() {
-		return Collections.unmodifiableList(invalidatePaths);
+	public Iterable<Pattern> getInvalidationPatterns() {
+		return Collections.unmodifiableSet(invalidationPatterns);
 	}
 
-	public void addInvalidatePath(String regex) {
-		addInvalidatePath(Pattern.compile(regex));
+	public void generateInvalidationPathsFor(SlingHttpServletRequest request) {
+		new DefinitionPathTranslator(pathAliasStore, resourceTypeCacheDefinition, this, request.getResource())
+				.translatePaths();
 	}
 
-	public void addInvalidatePaths(Collection<String> regexps) {
-		for (String regexp : regexps) {
-			addInvalidatePath(regexp);
+	void addInvalidationPathPrefix(String invalidationPathPrefix) {
+		if (StringUtils.isNotEmpty(invalidationPathPrefix)) {
+			this.invalidationPathPrefixes.add(invalidationPathPrefix);
 		}
 	}
 
-	public void addInvalidatePath(Pattern pattern) {
-		invalidatePaths.add(pattern);
+	void addInvalidationPattern(Pattern pattern) {
+		this.invalidationPatterns.add(pattern);
 	}
 
-	public String getResourceTypePath() {
-		return resourceTypePath;
-	}
-
-	public void setResourceTypePath(String resourceTypePath) {
-		this.resourceTypePath = resourceTypePath;
+	void addInvalidationPatterns(Iterable<Pattern> patterns) {
+		invalidationPatterns.addAll(invalidationPatterns);
 	}
 }
