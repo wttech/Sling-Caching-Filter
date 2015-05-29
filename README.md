@@ -1,6 +1,6 @@
 ## Introduction
 
-Cache bundle is a OSGi bundle that provides caching mechanisms for pages, components or parts of code. Cache bundle uses it's two main components to perform those tasks: cache filter and cache tag.
+Cache bundle is a OSGi bundle that provides caching mechanisms for pages or components. Cache bundle uses for it cache filter.
 
 ## Installation
 
@@ -26,19 +26,17 @@ It is strongly discouraged to enable cache filter on the author instance since t
 
 ### Configuration
 
-Cache filter can be configured in two places: in the OSGi console (filter configuration and components configurations).
+Cache filter can be configured in two places: in the OSGi console (filter configuration and components configurations). Under the hood [jcache](https://jcp.org/en/jsr/detail?id=107)  with [ehcache](https://github.com/ehcache/ehcache-jcache) are used.
 
 #### OSGi console - Sling Caching Filter
 
 OSGi console allows to modify the following properties:
 
 * Enabled - enables/disables cache filter
-* Duration - Maximum default time (in seconds) after which cache entry must be refreshed
-* Path aliases - define aliases for paths, syntax ```$<alias name>|<path 1>|<path 2>|...```, where ```$``` is a mandatory character before alias name, and ```|``` is a separator between paths
-* Memory - store cache in memory/on disk
-* Capacity - cache capacity
-
-For other properties see the [OSCache docs](http://svn.apache.org/repos/asf/db/ojb/trunk/src/config/oscache.properties).
+* Validity itme - Maximum default time (in seconds) after which cache entry must be refreshed
+* Path aliases - define aliases for paths, syntax `$<alias name>|<path 1>|<path 2>|...`, where `$` is a mandatory character before alias name, and `|` is a separator between paths
+* Max entries in cache - defines max entries in cache, disc and heap. `0` means unlimited.
+* Eviction policy - sets eviction policy, possible values: `LRU, LFU, FIFO`.
 
 #### OSGi console - Sling Caching Filter Resource Type Definition
 
@@ -51,7 +49,7 @@ OSGi console allows to add configuration per component/resource type.
 | Validity time (cache.config.validity.time) | integer | no | specifies cache entry validity time (in seconds) | duration property read from the OSGi console |
 | Cache level (cache.config.cache.level) | String | no | specifies the level of component caching | -1 |
 | Invalidate on self (cache.config.invalidate.on.self) | boolean | no | when set to true cached instance will be refreshed if it has been changed | true |
-| Invalidate on containing page (cache.config.invalidate.on.containing.page) | boolean | no | when set to true cached instance will be refreshed when something will change on page containing cached instance | true |
+| Invalidate on containing page (cache.config.invalidate.on.containing.page) | boolean | no | when set to true cached instance will be refreshed when something will change on page containing cached instance | false |
 | Invalidate on referenced fields (cache.config.invalidate.on.referenced.fields) | String[] | no       | List of component fields that store links to content/configuration/etc. pages. Links from those fields are loaded and each content change inside nodes pointed to by those links will invalidate cache of the current component | empty list |
 | Invalidate on paths (cache.config.invalidate.on.paths) | String[] | no | List of paths (regular expressions). If a path of any changed JCR node matches any path from the list then the cache of the current component is invalidated | empty list |
 
