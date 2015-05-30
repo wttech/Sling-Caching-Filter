@@ -22,8 +22,6 @@ public class StatisticEntry {
 
 	private static final String CACHE_MISS_PERCENTAGE_FIELD_NAME = "CacheMissPercentage";
 
-	private static final String CACHE_HIT_PERCENTAGE_FIELD_NAME = "CacheHitPercentage";
-
 	private static final String CACHE_MISSES_FIELD_NAME = "CacheMisses";
 
 	private static final String CACHE_HITS_FIELD_NAME = "CacheHits";
@@ -33,8 +31,6 @@ public class StatisticEntry {
 	private final long cacheHits;
 
 	private final long cacheMisses;
-
-	private final float cacheHitPercentage;
 
 	private final float cacheMissPercentage;
 
@@ -50,7 +46,6 @@ public class StatisticEntry {
 		ObjectName objectName = buildObjectName(cacheHolder, cacheName);
 		this.cacheHits = (Long) mBeanServer.getAttribute(objectName, CACHE_HITS_FIELD_NAME);
 		this.cacheMisses = (Long) mBeanServer.getAttribute(objectName, CACHE_MISSES_FIELD_NAME);
-		this.cacheHitPercentage = (Float) mBeanServer.getAttribute(objectName, CACHE_HIT_PERCENTAGE_FIELD_NAME);
 		this.cacheMissPercentage = (Float) mBeanServer.getAttribute(objectName, CACHE_MISS_PERCENTAGE_FIELD_NAME);
 
 		this.keys = cacheHolder.getKeysFor(cacheName);

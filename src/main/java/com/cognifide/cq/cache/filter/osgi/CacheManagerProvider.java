@@ -15,19 +15,14 @@
  */
 package com.cognifide.cq.cache.filter.osgi;
 
-public interface CacheConfiguration {
+import javax.cache.CacheManager;
+
+public interface CacheManagerProvider {
 
 	/**
-	 * Controls cache availability
+	 * Returns full configured cache manager
 	 *
-	 * @return true if cache should be enabled, false otherwise
+	 * @return cache manager
 	 */
-	boolean isEnabled();
-
-	/**
-	 * Time after element in cache will be invalid
-	 *
-	 * @return validity time in seconds
-	 */
-	int getValidityTimeInSeconds();
+	CacheManager getCacheManger();
 }

@@ -7,6 +7,7 @@ import com.cognifide.cq.cache.definition.ResourceTypeCacheDefinition;
 import com.cognifide.cq.cache.expiry.collection.GuardCollectionWatcher;
 import com.cognifide.cq.cache.expiry.guard.ExpiryGuard;
 import com.cognifide.cq.cache.filter.osgi.CacheConfiguration;
+import com.cognifide.cq.cache.filter.osgi.CacheManagerProvider;
 import com.cognifide.cq.cache.model.ResourceTypeCacheConfiguration;
 import com.cognifide.cq.cache.model.key.CacheKeyGenerator;
 import com.cognifide.cq.cache.model.key.CacheKeyGeneratorImpl;
@@ -23,20 +24,16 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import javax.cache.Cache;
 import javax.cache.CacheManager;
-import javax.cache.Caching;
 import javax.cache.configuration.Factory;
 import javax.cache.configuration.FactoryBuilder;
 import javax.cache.configuration.MutableConfiguration;
 import javax.cache.expiry.Duration;
 import javax.cache.expiry.ExpiryPolicy;
 import javax.cache.expiry.TouchedExpiryPolicy;
-import javax.cache.spi.CachingProvider;
 import javax.servlet.ServletException;
-import net.sf.ehcache.config.Configuration;
 import org.apache.commons.lang.StringUtils;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.ReferenceCardinality;
 import org.apache.felix.scr.annotations.ReferencePolicy;
@@ -47,15 +44,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Service
-@Component(immediate = true)
+@Component
 public class JCacheHolder implements CacheHolder {
 
 	private static final Logger logger = LoggerFactory.getLogger(JCacheHolder.class);
 
-	private static final String CACHING_PROVIDER = "org.ehcache.jcache.JCacheCachingProvider";
-
 	@Reference
 	private CacheConfiguration cacheConfiguration;
+
+	@Reference
+	private CacheManagerProvider cacheManagerProvider;
 
 	@Reference(
 			referenceInterface = ResourceTypeCacheDefinition.class,
@@ -68,40 +66,16 @@ public class JCacheHolder implements CacheHolder {
 	@Reference
 	private GuardCollectionWatcher guardCollectionWatcher;
 
-	private CacheManager cacheManager;
-
 	private CacheKeyGenerator cacheKeyGenerator;
 
 	@Activate
 	public void activate() {
-		createCacheManager();
 		cacheKeyGenerator = new CacheKeyGeneratorImpl();
-	}
-
-	private void createCacheManager() {
-		if (null == cacheManager || cacheManager.isClosed()) {
-			Caching.setDefaultClassLoader(getClass().getClassLoader());
-			CachingProvider cachingProvider = Caching.getCachingProvider(CACHING_PROVIDER);
-			cacheManager = cachingProvider.getCacheManager();
-			configureCacheManagerVendorSpecific();
-			logger.info("Cache manager {} was created.", cacheManager.getURI());
-		}
-	}
-
-	private void configureCacheManagerVendorSpecific() {
-		net.sf.ehcache.config.CacheConfiguration ehcacheConfiguration = new net.sf.ehcache.config.CacheConfiguration();
-		ehcacheConfiguration.setMaxEntriesInCache(cacheConfiguration.getMaxEntriesInCache());
-		ehcacheConfiguration.setMaxEntriesLocalDisk(cacheConfiguration.getMaxEntriesInCache());
-		ehcacheConfiguration.setMaxEntriesLocalHeap(cacheConfiguration.getMaxEntriesInCache());
-		ehcacheConfiguration.setMemoryStoreEvictionPolicy(cacheConfiguration.getEvictionPolicy());
-		Configuration configuration = cacheManager.unwrap(net.sf.ehcache.CacheManager.class).getConfiguration();
-		configuration.setDefaultCacheConfiguration(ehcacheConfiguration);
 	}
 
 	public synchronized void bindResourceTypeCacheDefinition(ResourceTypeCacheDefinition resourceTypeCacheDefinition) {
 		if (resourceTypeCacheDefinition.isValid() && resourceTypeCacheDefinition.isEnabled()) {
 			resourceTypeCacheDefinitions.put(resourceTypeCacheDefinition.getResourceType(), resourceTypeCacheDefinition);
-			createCacheManager();
 			createOrRecreateCache(resourceTypeCacheDefinition);
 		}
 	}
@@ -118,6 +92,7 @@ public class JCacheHolder implements CacheHolder {
 	}
 
 	private void deleteCache(String cacheName) {
+		CacheManager cacheManager = cacheManagerProvider.getCacheManger();
 		if (StringUtils.isNotEmpty(cacheName) && !cacheManager.isClosed()) {
 			logger.info("Destroying {} cache.", cacheName);
 			cacheManager.destroyCache(cacheName);
@@ -129,6 +104,7 @@ public class JCacheHolder implements CacheHolder {
 			String cacheName, CacheConfigurationEntry cacheConfigurationEntry) {
 		Cache<String, ByteArrayOutputStream> cache = null;
 
+		CacheManager cacheManager = cacheManagerProvider.getCacheManger();
 		if (StringUtils.isNotEmpty(cacheName) && !cacheManager.isClosed()) {
 			logger.info("Creating {} cache", cacheName);
 			cache = cacheManager.createCache(cacheName, buildBasicCacheConfiguration(cacheConfigurationEntry));
@@ -139,6 +115,7 @@ public class JCacheHolder implements CacheHolder {
 	}
 
 	private Cache<String, ByteArrayOutputStream> findCacheFor(String cacheName) {
+		CacheManager cacheManager = cacheManagerProvider.getCacheManger();
 		return !cacheManager.isClosed() && StringUtils.isNotEmpty(cacheName)
 				? cacheManager.getCache(cacheName, String.class, ByteArrayOutputStream.class) : null;
 	}
@@ -155,8 +132,8 @@ public class JCacheHolder implements CacheHolder {
 
 	private Factory<? extends ExpiryPolicy> createExpiryPolicyFactory(
 			CacheConfigurationEntry cacheConfigurationEntry) {
-		Integer validityTimeInSeconds = null == cacheConfigurationEntry.getValidityTimeInSeconds()
-				? cacheConfiguration.getValidityTimeInSeconds() : cacheConfigurationEntry.getValidityTimeInSeconds();
+		int validityTimeInSeconds = null == cacheConfigurationEntry.getValidityTimeInSeconds()
+						? cacheConfiguration.getValidityTimeInSeconds() : cacheConfigurationEntry.getValidityTimeInSeconds();
 		Duration duration = new Duration(TimeUnit.SECONDS, validityTimeInSeconds);
 		return new FactoryBuilder.SingletonFactory<ExpiryPolicy>(new TouchedExpiryPolicy(duration));
 	}
@@ -171,11 +148,12 @@ public class JCacheHolder implements CacheHolder {
 
 	@Override
 	public URI getCacheManagerURI() {
-		return cacheManager.getURI();
+		return cacheManagerProvider.getCacheManger().getURI();
 	}
 
 	@Override
 	public Iterable<String> getCacheNames() {
+		CacheManager cacheManager = cacheManagerProvider.getCacheManger();
 		return cacheManager.isClosed() ? Collections.<String>emptySet() : cacheManager.getCacheNames();
 	}
 
@@ -260,13 +238,6 @@ public class JCacheHolder implements CacheHolder {
 			cache.clear();
 		} else {
 			logger.warn("Could not clear cache. Cache {} does not exist or was closed.", cacheName);
-		}
-	}
-
-	@Deactivate
-	protected void deactivate() {
-		if (!cacheManager.isClosed()) {
-			cacheManager.close();
 		}
 	}
 }

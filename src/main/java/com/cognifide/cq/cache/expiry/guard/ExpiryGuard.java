@@ -19,7 +19,7 @@ import com.cognifide.cq.cache.cache.CacheHolder;
 import com.cognifide.cq.cache.expiry.guard.action.DeleteAction;
 import com.cognifide.cq.cache.expiry.guard.action.GuardAction;
 import com.cognifide.cq.cache.model.ResourceTypeCacheConfiguration;
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.regex.Pattern;
 import org.apache.sling.api.SlingHttpServletRequest;
 
@@ -53,7 +53,8 @@ public class ExpiryGuard {
 		this.key = key;
 		this.guardAction = guardAction;
 
-		this.invalidationPathPrefixes = new ArrayList<String>(8);
+		this.invalidationPathPrefixes = Collections.emptyList();
+		this.invalidationPatterns = Collections.emptyList();
 		this.expired = false;
 	}
 
@@ -72,6 +73,8 @@ public class ExpiryGuard {
 
 	public void onContentChange(String path) {
 		invalidatePathPrefixes(path);
+		invalidatePatterns(path);
+		executeWhenExpired();
 	}
 
 	private void invalidatePathPrefixes(String path) {
@@ -96,12 +99,8 @@ public class ExpiryGuard {
 		}
 	}
 
-	public boolean isExpired() {
-		return expired;
-	}
-
-	public void executeWhenExpired() {
-		if (isExpired()) {
+	private void executeWhenExpired() {
+		if (expired) {
 			guardAction.execute();
 		}
 	}

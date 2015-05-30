@@ -17,8 +17,6 @@ package com.cognifide.cq.cache.expiry.osgi;
 
 import com.cognifide.cq.cache.expiry.collection.GuardCollectionWalker;
 import com.cognifide.cq.cache.expiry.guard.ExpiryGuard;
-import java.util.HashSet;
-import java.util.Set;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Properties;
 import org.apache.felix.scr.annotations.Property;
@@ -52,24 +50,12 @@ public class OsgiEventsService implements EventHandler {
 			logger.info("Processing {}", path);
 		}
 
-		Set<ExpiryGuard> expiryGuardsToRemove = new HashSet<ExpiryGuard>();
 		for (ExpiryGuard expiryGuard : garnisonWalker.getGuards()) {
 			expiryGuard.onContentChange(path);
-			if (expiryGuard.isExpired()) {
-				expiryGuardsToRemove.add(expiryGuard);
-			}
 		}
-
-		removeExpiredCacheElementsAndGaurds(expiryGuardsToRemove);
 	}
 
 	private String readPathFrom(Event event) {
 		return (String) event.getProperty(SlingConstants.PROPERTY_PATH);
-	}
-
-	private void removeExpiredCacheElementsAndGaurds(Set<ExpiryGuard> expiryGuardsToRemove) {
-		for (ExpiryGuard expiryGuard : expiryGuardsToRemove) {
-			expiryGuard.executeWhenExpired();
-		}
 	}
 }
