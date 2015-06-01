@@ -2,8 +2,6 @@ package com.cognifide.cq.cache.plugins.statistics;
 
 import com.cognifide.cq.cache.cache.CacheHolder;
 import java.lang.management.ManagementFactory;
-import java.util.Collection;
-import java.util.Collections;
 import javax.management.AttributeNotFoundException;
 import javax.management.InstanceNotFoundException;
 import javax.management.MBeanException;
@@ -34,8 +32,6 @@ public class StatisticEntry {
 
 	private final float cacheMissPercentage;
 
-	private final Collection<String> keys;
-
 	public StatisticEntry(CacheHolder cacheHolder, String cacheName)
 			throws MBeanException, AttributeNotFoundException, InstanceNotFoundException, ReflectionException,
 			MalformedObjectNameException {
@@ -47,8 +43,6 @@ public class StatisticEntry {
 		this.cacheHits = (Long) mBeanServer.getAttribute(objectName, CACHE_HITS_FIELD_NAME);
 		this.cacheMisses = (Long) mBeanServer.getAttribute(objectName, CACHE_MISSES_FIELD_NAME);
 		this.cacheMissPercentage = (Float) mBeanServer.getAttribute(objectName, CACHE_MISS_PERCENTAGE_FIELD_NAME);
-
-		this.keys = cacheHolder.getKeysFor(cacheName);
 	}
 
 	private ObjectName buildObjectName(CacheHolder cacheHolder, String cacheName) throws MalformedObjectNameException {
@@ -84,10 +78,6 @@ public class StatisticEntry {
 
 	public float getCacheMissPercentage() {
 		return cacheMissPercentage;
-	}
-
-	public Collection<String> getKeys() {
-		return Collections.unmodifiableCollection(keys);
 	}
 
 }

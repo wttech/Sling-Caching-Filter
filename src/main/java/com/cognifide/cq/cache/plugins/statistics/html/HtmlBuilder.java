@@ -56,7 +56,7 @@ public class HtmlBuilder {
 
 	private static final String TH_CLOSING_TAG = OPENING_TAG_SIGN + SLASH + "th" + CLOSING_TAG_SIGN;
 
-	private static final String CLEAR_CACHE_JAVA_SCRIPT = "$('span.ui-icon.ui-icon-trash').click(function() {\n"
+	private static final String CLEAR_CACHE_JAVA_SCRIPT = "\n$('span.ui-icon.ui-icon-trash').click(function() {\n"
 			+ "  var key = $(this).parent().parent().find('.resource-type').html();\n"
 			+ "  $.ajax({\n"
 			+ "    url: 'slingcacheinclude',\n"
@@ -73,7 +73,7 @@ public class HtmlBuilder {
 			+ "  });\n"
 			+ "});";
 
-	private static final String SHOW_KEYS_JAVA_SCRIPT = "$('div.bIcon.ui-icon-triangle-1-e').click(function() {\n"
+	private static final String SHOW_KEYS_JAVA_SCRIPT = "\n$('div.bIcon.ui-icon-triangle-1-e').click(function() {\n"
 			+ "  var key = $(this).next().text();"
 			+ "  $.ajax({\n"
 			+ "    url: 'slingcacheinclude',\n"
@@ -85,6 +85,7 @@ public class HtmlBuilder {
 			+ "    }\n"
 			+ "  }).done(function(data) {\n"
 			+ "    $(this).siblings('div.cache-keys').append(data);"
+			+ "    $(this).parent().next().text($(data).children().length);"
 			+ "  }).fail(function(data) {\n"
 			+ "    $(this).siblings('div.cache-keys').text('There were some errors. Please see log file for details.');"
 			+ "  });\n"
@@ -196,7 +197,7 @@ public class HtmlBuilder {
 					.append("<div class=\"cache-keys\" style=\"display: none;\">");
 			markup.append("</div>")
 					.append("</td>")
-					.append(td(statisticEntry.getKeys().size()))
+					.append(td("Click expand to see the number. Notice that number of hits will increase on refresh."))
 					.append(td(statisticEntry.getCacheHits()))
 					.append(td(statisticEntry.getCacheMisses()))
 					.append(td(String.format("%.2f%%", statisticEntry.getCacheHitPercentage())))
