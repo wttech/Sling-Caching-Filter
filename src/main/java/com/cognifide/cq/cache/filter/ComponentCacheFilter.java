@@ -82,8 +82,8 @@ public class ComponentCacheFilter implements Filter {
 				chain.doFilter(request, response);
 			}
 		} else {
-			if (logger.isInfoEnabled()) {
-				logger.info("There is no configuration for {}", request.getResource().getResourceType());
+			if (logger.isDebugEnabled()) {
+				logger.debug("There is no configuration for {}", request.getResource().getResourceType());
 			}
 			chain.doFilter(request, response);
 		}
