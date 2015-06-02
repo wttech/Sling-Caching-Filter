@@ -15,6 +15,8 @@
  */
 package com.cognifide.cq.cache.filter.osgi;
 
+import java.io.ByteArrayOutputStream;
+import javax.cache.Cache;
 import javax.cache.CacheManager;
 
 public interface CacheManagerProvider {
@@ -25,4 +27,11 @@ public interface CacheManagerProvider {
 	 * @return cache manager
 	 */
 	CacheManager getCacheManger();
+
+	/**
+	 * Updated cache configuration with specific vendor configuration
+	 *
+	 * @param cache - cache configuration that will be updated
+	 */
+	void updateCacheConfiguration(Cache<String, ByteArrayOutputStream> cache);
 }

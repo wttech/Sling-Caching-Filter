@@ -93,11 +93,15 @@ public class JCacheHolder implements CacheHolder {
 
 	private void deleteCache(String cacheName) {
 		CacheManager cacheManager = cacheManagerProvider.getCacheManger();
-		if (StringUtils.isNotEmpty(cacheName) && !cacheManager.isClosed()) {
+		if (canWorkWithCacheManager(cacheName, cacheManager)) {
 			logger.info("Destroying {} cache.", cacheName);
 			cacheManager.destroyCache(cacheName);
 			logger.debug("Cache {} was destroyed", cacheName);
 		}
+	}
+
+	private boolean canWorkWithCacheManager(String cacheName, CacheManager cacheManager) {
+		return StringUtils.isNotEmpty(cacheName) && !cacheManager.isClosed();
 	}
 
 	private Cache<String, ByteArrayOutputStream> createCache(
@@ -105,9 +109,10 @@ public class JCacheHolder implements CacheHolder {
 		Cache<String, ByteArrayOutputStream> cache = null;
 
 		CacheManager cacheManager = cacheManagerProvider.getCacheManger();
-		if (StringUtils.isNotEmpty(cacheName) && !cacheManager.isClosed()) {
+		if (canWorkWithCacheManager(cacheName, cacheManager)) {
 			logger.info("Creating {} cache", cacheName);
 			cache = cacheManager.createCache(cacheName, buildBasicCacheConfiguration(cacheConfigurationEntry));
+			cacheManagerProvider.updateCacheConfiguration(cache);
 			logger.debug("Cache {} was created", cacheName);
 		}
 
@@ -116,7 +121,7 @@ public class JCacheHolder implements CacheHolder {
 
 	private Cache<String, ByteArrayOutputStream> findCacheFor(String cacheName) {
 		CacheManager cacheManager = cacheManagerProvider.getCacheManger();
-		return !cacheManager.isClosed() && StringUtils.isNotEmpty(cacheName)
+		return canWorkWithCacheManager(cacheName, cacheManager)
 				? cacheManager.getCache(cacheName, String.class, ByteArrayOutputStream.class) : null;
 	}
 
@@ -133,7 +138,7 @@ public class JCacheHolder implements CacheHolder {
 	private Factory<? extends ExpiryPolicy> createExpiryPolicyFactory(
 			CacheConfigurationEntry cacheConfigurationEntry) {
 		int validityTimeInSeconds = null == cacheConfigurationEntry.getValidityTimeInSeconds()
-						? cacheConfiguration.getValidityTimeInSeconds() : cacheConfigurationEntry.getValidityTimeInSeconds();
+				? cacheConfiguration.getValidityTimeInSeconds() : cacheConfigurationEntry.getValidityTimeInSeconds();
 		Duration duration = new Duration(TimeUnit.SECONDS, validityTimeInSeconds);
 		return new FactoryBuilder.SingletonFactory<ExpiryPolicy>(new TouchedExpiryPolicy(duration));
 	}
