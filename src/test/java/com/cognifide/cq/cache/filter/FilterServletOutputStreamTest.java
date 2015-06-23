@@ -1,10 +1,9 @@
 package com.cognifide.cq.cache.filter;
 
-import static junit.framework.Assert.assertEquals;
-
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -13,43 +12,51 @@ import org.junit.Test;
  */
 public class FilterServletOutputStreamTest {
 
-	private FilterServletOutputStream stream;
-
 	private ByteArrayOutputStream byteArrayOutputStream;
+
+	private FilterServletOutputStream testedObject;
 
 	@Before
 	public void setUp() {
 		byteArrayOutputStream = new ByteArrayOutputStream();
-		stream = new FilterServletOutputStream(byteArrayOutputStream);
+		testedObject = new FilterServletOutputStream(byteArrayOutputStream);
 	}
 
 	private String closeStreamAndReadConent() throws IOException {
-		stream.close();
+		testedObject.close();
 		return new String(byteArrayOutputStream.toByteArray());
 	}
 
 	@Test
 	public void testWriteInt() throws IOException {
-		stream.write('a');
-		stream.write('b');
-		stream.write('c');
+		//when
+		testedObject.write('a');
+		testedObject.write('b');
+		testedObject.write('c');
+		String actual = closeStreamAndReadConent();
 
-		String content = closeStreamAndReadConent();
-		assertEquals("abc", content);
+		//then
+		assertThat(actual, is("abc"));
 	}
 
 	@Test
 	public void testWriteByteArray() throws IOException {
-		stream.write("abc".getBytes());
-		String content = closeStreamAndReadConent();
-		assertEquals("abc", content);
+		//when
+		testedObject.write("abc".getBytes());
+		String actual = closeStreamAndReadConent();
+
+		//then
+		assertThat(actual, is("abc"));
 	}
 
 	@Test
 	public void testWriteByteArrayWithParams() throws IOException {
-		stream.write("--abc--".getBytes(), 2, 3);
-		String content = closeStreamAndReadConent();
-		assertEquals("abc", content);
+		//when
+		testedObject.write("--abc--".getBytes(), 2, 3);
+		String actual = closeStreamAndReadConent();
+
+		//then
+		assertThat(actual, is("abc"));
 	}
 
 }

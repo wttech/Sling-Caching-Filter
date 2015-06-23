@@ -13,19 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.cognifide.cq.cache.plugins.statistics.action;
+package com.cognifide.cq.cache.filter.osgi;
 
-/**
- * Action executed when statistics are shown
- */
-public interface StatisticsAction {
-
-	static final String UTF_8 = "utf-8";
-
-	static final String TEXT_HTML = "text/html";
+public interface CacheConfiguration {
 
 	/**
-	 * Executes action
+	 * Controls cache availability
+	 *
+	 * @return true if cache should be enabled, false otherwise
 	 */
-	public void exectue();
+	boolean isEnabled();
+
+	/**
+	 * Time after element in cache will be invalid
+	 *
+	 * @return validity time in seconds
+	 */
+	int getValidityTimeInSeconds();
 }

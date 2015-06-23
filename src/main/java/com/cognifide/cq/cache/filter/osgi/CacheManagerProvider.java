@@ -13,19 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.cognifide.cq.cache.plugins.statistics.action;
+package com.cognifide.cq.cache.filter.osgi;
 
-/**
- * Action executed when statistics are shown
- */
-public interface StatisticsAction {
+import java.io.ByteArrayOutputStream;
+import javax.cache.Cache;
+import javax.cache.CacheManager;
 
-	static final String UTF_8 = "utf-8";
-
-	static final String TEXT_HTML = "text/html";
+public interface CacheManagerProvider {
 
 	/**
-	 * Executes action
+	 * Returns full configured cache manager
+	 *
+	 * @return cache manager
 	 */
-	public void exectue();
+	CacheManager getCacheManger();
+
+	/**
+	 * Updated cache configuration with specific vendor configuration
+	 *
+	 * @param cache - cache configuration that will be updated
+	 */
+	void updateCacheConfiguration(Cache<String, ByteArrayOutputStream> cache);
 }

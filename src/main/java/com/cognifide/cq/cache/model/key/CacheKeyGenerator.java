@@ -1,15 +1,21 @@
 package com.cognifide.cq.cache.model.key;
 
-import org.apache.sling.api.resource.Resource;
+import com.cognifide.cq.cache.definition.CacheConfigurationEntry;
+import org.apache.sling.api.SlingHttpServletRequest;
 
 /**
  * Generates cache keys basing on given strategy.
- * 
+ *
  * @author Jakub Malecki
  */
 public interface CacheKeyGenerator {
 
-	String generateKey(int cacheLevel, Resource resource, String selectorString);
-
-	String generateKey(int cacheLevel, String prefix, String pagePath, String selectorString);
+	/**
+	 * Generates key based on given request and cache configuration entry
+	 *
+	 * @param request
+	 * @param cacheConfigurationEntry
+	 * @return generated key
+	 */
+	String generateKey(SlingHttpServletRequest request, CacheConfigurationEntry cacheConfigurationEntry);
 }

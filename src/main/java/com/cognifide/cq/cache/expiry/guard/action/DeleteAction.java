@@ -13,19 +13,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.cognifide.cq.cache.plugins.statistics.action;
+package com.cognifide.cq.cache.expiry.guard.action;
 
-/**
- * Action executed when statistics are shown
- */
-public interface StatisticsAction {
+import com.cognifide.cq.cache.cache.CacheHolder;
 
-	static final String UTF_8 = "utf-8";
+public class DeleteAction implements GuardAction {
 
-	static final String TEXT_HTML = "text/html";
+	private final CacheHolder cacheHolder;
 
-	/**
-	 * Executes action
-	 */
-	public void exectue();
+	private final String cacheName;
+
+	private final String key;
+
+	public DeleteAction(CacheHolder cacheHolder, String cacheName, String key) {
+		this.cacheHolder = cacheHolder;
+		this.cacheName = cacheName;
+		this.key = key;
+	}
+
+	@Override
+	public void execute() {
+		cacheHolder.remove(cacheName, key);
+	}
 }

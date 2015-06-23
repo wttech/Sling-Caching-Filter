@@ -1,36 +1,73 @@
 package com.cognifide.cq.cache.plugins.statistics;
 
-import com.cognifide.cq.cache.filter.cache.action.CacheAction;
+import com.cognifide.cq.cache.cache.CacheHolder;
+import com.cognifide.cq.cache.plugins.statistics.action.ClearAction;
+import com.cognifide.cq.cache.plugins.statistics.action.ShowKeysAction;
+import com.cognifide.cq.cache.plugins.statistics.action.StatisticsAction;
+import com.cognifide.cq.cache.plugins.statistics.html.HtmlBuilder;
+import java.io.IOException;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import org.apache.felix.scr.annotations.Component;
+import org.apache.felix.scr.annotations.Properties;
+import org.apache.felix.scr.annotations.Property;
+import org.apache.felix.scr.annotations.Reference;
+import org.apache.felix.scr.annotations.Service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-// might extends CacheEntryEventListener when when statistics from cache are to be used
-public interface Statistics {
+@Component
+@Service(value = {javax.servlet.Servlet.class})
+@Properties({
+	@Property(name = "felix.webconsole.label", value = "slingcacheinclude"),
+	@Property(name = "felix.webconsole.title", value = "Sling Cache Include"),
+	@Property(name = "felix.webconsole.category", value = "Sling")})
+public class Statistics extends HttpServlet {
 
-	static final String KEY_PARAMETER = "key";
+	private static final long serialVersionUID = -5474968941326180454L;
 
-	static final String ACTION_PARAMETER = "action";
+	private static final Logger logger = LoggerFactory.getLogger(Statistics.class);
 
-	static final String DELETE_ACTION_PARAMETER_VALUE = "delete";
+	public static final String CACHE_NAME_PARAMETER = "cacheName";
 
-	static final String SHOW_KEYS_ACTION_PARAMETER_VALUE = "showKeys";
+	public static final String ACTION_PARAMETER = "action";
 
-	/**
-	 * Action indicating that entry in cache was not acquired for given resource type and key.
-	 *
-	 * @param resourceType
-	 * @param key
-	 * @param cacheAction
-	 */
-	void cacheMiss(String resourceType, String key, CacheAction cacheAction);
+	public static final String DELETE_ACTION_PARAMETER_VALUE = "delete";
 
-	/**
-	 * Action indicating that entry in cache was acquired for given resource type.
-	 *
-	 * @param resourceType
-	 */
-	void cacheHit(String resourceType);
+	public static final String SHOW_KEYS_ACTION_PARAMETER_VALUE = "showKeys";
 
-	/**
-	 * Clears all statistics.
-	 */
-	void clearStatistics();
+	@Reference
+	private CacheHolder cacheHolder;
+
+	@Override
+	protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+		resp.getWriter().write(new HtmlBuilder().build(cacheHolder));
+	}
+
+	@Override
+	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+		StatisticsAction statisticsAction = readActionFromRequest(request, response);
+		if (null != statisticsAction) {
+			statisticsAction.exectue();
+		} else {
+			logger.error("Error. No valid [action] prameter.");
+			response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+		}
+	}
+
+	private StatisticsAction readActionFromRequest(HttpServletRequest request, HttpServletResponse response) {
+		StatisticsAction statisticsAction = null;
+
+		String action = request.getParameter(ACTION_PARAMETER);
+		if (DELETE_ACTION_PARAMETER_VALUE.equals(action)) {
+			statisticsAction = new ClearAction(request, response, cacheHolder);
+		} else if (SHOW_KEYS_ACTION_PARAMETER_VALUE.equals(action)) {
+			statisticsAction = new ShowKeysAction(request, response, cacheHolder);
+		}
+
+		return statisticsAction;
+	}
+
 }

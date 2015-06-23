@@ -13,19 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.cognifide.cq.cache.plugins.statistics.action;
+package com.cognifide.cq.cache.expiry.guard.action;
 
 /**
- * Action executed when statistics are shown
+ * Action that can be executed by expiry guard
  */
-public interface StatisticsAction {
-
-	static final String UTF_8 = "utf-8";
-
-	static final String TEXT_HTML = "text/html";
+public interface GuardAction {
 
 	/**
-	 * Executes action
+	 * Execute defined action
 	 */
-	public void exectue();
+	void execute();
 }

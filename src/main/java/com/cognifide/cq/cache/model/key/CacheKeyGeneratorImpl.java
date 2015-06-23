@@ -1,10 +1,12 @@
 package com.cognifide.cq.cache.model.key;
 
+import com.cognifide.cq.cache.definition.CacheConfigurationEntry;
 import org.apache.commons.lang.StringUtils;
+import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.resource.Resource;
 
 /**
- * 
+ *
  * @author Jakub Malecki
  */
 public class CacheKeyGeneratorImpl implements CacheKeyGenerator {
@@ -12,7 +14,11 @@ public class CacheKeyGeneratorImpl implements CacheKeyGenerator {
 	private static final String RESOURCE_TYPE_PATH = "/apps/%s";
 
 	@Override
-	public String generateKey(int cacheLevel, Resource resource, String selectorString) {
+	public String generateKey(SlingHttpServletRequest request, CacheConfigurationEntry cacheConfigurationEntry) {
+		int cacheLevel = cacheConfigurationEntry.getCacheLevel();
+		Resource resource = request.getResource();
+		String selectorString = request.getRequestPathInfo().getSelectorString();
+
 		if (cacheLevel < 0) {
 			// caching only this one instance
 			return resource.getPath() + getSelectorStringKeyPart(selectorString);
@@ -23,20 +29,6 @@ public class CacheKeyGeneratorImpl implements CacheKeyGenerator {
 			// path defines the scope of caching
 			return getAbsoluteTypePath(resource.getResourceType())
 					+ getCutPath(resource.getPath(), cacheLevel) + getSelectorStringKeyPart(selectorString);
-		}
-	}
-
-	@Override
-	public String generateKey(int cacheLevel, String prefix, String pagePath, String selectorString) {
-		if (cacheLevel < 0) {
-			// caching only this one instance
-			return prefix + pagePath + getSelectorStringKeyPart(selectorString);
-		} else if (cacheLevel == 0) {
-			// site-wide
-			return prefix + getSelectorStringKeyPart(selectorString);
-		} else {
-			// path defines the scope of caching
-			return prefix + getCutPath(pagePath, cacheLevel) + getSelectorStringKeyPart(selectorString);
 		}
 	}
 

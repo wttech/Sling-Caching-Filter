@@ -13,7 +13,7 @@
     <groupId>com.cognifide.cq</groupId>
     <artifactId>sling-caching-filter</artifactId>
     <name>Sling Caching Filter</name>
-    <version>0.8.2-SNAPSHOT</version>
+    <version>0.9.0-SNAPSHOT</version>
     <packaging>bundle</packaging>
     <organization>
         <name>Cognifide Polska Sp. z o. o.</name>
@@ -42,8 +42,42 @@
         <url>https://github.com/Cognifide/Sling-Caching-Filter</url>
     </scm>
 
+    <repositories>
+        <repository>
+            <id>adobe-public-releases</id>
+            <name>Adobe Public Repository</name>
+            <url>http://repo.adobe.com/nexus/content/groups/public</url>
+            <releases>
+                <enabled>true</enabled>
+                <updatePolicy>never</updatePolicy>
+            </releases>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
+
     <build>
         <plugins>
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>0.7.4.201502262128</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>report</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <groupId>org.apache.felix</groupId>
                 <artifactId>maven-scr-plugin</artifactId>
@@ -71,16 +105,17 @@
             <plugin>
                 <groupId>org.apache.felix</groupId>
                 <artifactId>maven-bundle-plugin</artifactId>
-                <version>2.4.0</version>
+                <version>2.5.4</version>
                 <extensions>true</extensions>
                 <configuration>
                     <instructions>
-                        <Import-Package>!javax.jms.*,!org.jgroups.*,!org.hibernate.*,*</Import-Package>
-                        <Export-Package>com.cognifide.cq.cache.*,com.opensymphony.oscache.*</Export-Package>
+                        <Import-Package>!org.hibernate.*,!sun.misc.*,!org.quartz.*,!org.terracotta.*,!com.sun.*,!javax.enterprise.util.*,*</Import-Package>
+                        <Export-Package>com.cognifide.cq.cache.definition.*</Export-Package>
+                        <Private-Package>com.cognifide.cq.cache.cache.listener.*</Private-Package>
                         <Bundle-SymbolicName>${project.groupId}.${project.artifactId}</Bundle-SymbolicName>
                         <Bundle-Name>${project.name}</Bundle-Name>
                         <Bundle-Vendor>Cognifide Ltd.</Bundle-Vendor>
-                        <Embed-Dependency>oscache;scope=compile|runtime</Embed-Dependency>
+                        <Embed-Dependency>cache-api|jcache|ehcache;scope=compile|runtime</Embed-Dependency>
                         <Embed-Transitive>false</Embed-Transitive>
                     </instructions>
                 </configuration>
@@ -136,16 +171,21 @@
     </build>
 
     <dependencies>
+        <!-- cache -->
         <dependency>
-            <groupId>opensymphony</groupId>
-            <artifactId>oscache</artifactId>
-            <version>2.4</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>javax.jms</groupId>
-                    <artifactId>jms</artifactId>
-                </exclusion>
-            </exclusions>
+            <groupId>javax.cache</groupId>
+            <artifactId>cache-api</artifactId>
+            <version>1.0.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.ehcache</groupId>
+            <artifactId>jcache</artifactId>
+            <version>1.0.1</version>
+        </dependency>
+        <dependency>
+            <groupId>net.sf.ehcache</groupId>
+            <artifactId>ehcache</artifactId>
+            <version>2.10.0</version>
         </dependency>
 
         <!-- jcr -->
@@ -204,6 +244,14 @@
             <scope>provided</scope>
         </dependency>
 
+        <!-- aem -->
+        <dependency>
+            <groupId>com.adobe.aem</groupId>
+            <artifactId>aem-api</artifactId>
+            <version>6.0.0.1</version>
+            <scope>provided</scope>
+        </dependency>
+
         <!-- commons -->
         <dependency>
             <groupId>commons-lang</groupId>
@@ -211,6 +259,22 @@
             <version>2.4</version>
             <scope>provided</scope>
         </dependency>
+
+
+        <!-- logging  -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>1.6.4</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-nop</artifactId>
+            <version>1.6.4</version>
+            <scope>test</scope>
+        </dependency>
+
 
         <!-- test -->
         <dependency>
@@ -238,10 +302,22 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.easymock</groupId>
-            <artifactId>easymock</artifactId>
-            <version>3.2</version>
+            <groupId>org.seleniumhq.selenium</groupId>
+            <artifactId>selenium-java</artifactId>
             <scope>test</scope>
+            <version>2.44.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.opera</groupId>
+            <artifactId>operadriver</artifactId>
+            <scope>test</scope>
+            <version>1.5</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.seleniumhq.selenium</groupId>
+                    <artifactId>selenium-remote-driver</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
     </dependencies>
 

@@ -30,6 +30,8 @@ public class CacheHttpServletResponseWrapper extends HttpServletResponseWrapper 
 
 	/**
 	 * Gets the outputstream.
+	 *
+	 * @return
 	 */
 	@Override
 	public ServletOutputStream getOutputStream() {
@@ -38,6 +40,9 @@ public class CacheHttpServletResponseWrapper extends HttpServletResponseWrapper 
 
 	/**
 	 * Gets the print writer.
+	 *
+	 * @return
+	 * @throws java.io.IOException
 	 */
 	@Override
 	public PrintWriter getWriter() throws IOException {
