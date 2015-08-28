@@ -1,15 +1,7 @@
 package com.cognifide.cq.cache.filter;
 
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertFalse;
-import static junit.framework.Assert.assertNotNull;
-import static junit.framework.Assert.assertNull;
-import static junit.framework.Assert.assertTrue;
-import static org.easymock.EasyMock.createMock;
-import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.notNull;
-import static org.easymock.EasyMock.replay;
-import static org.easymock.EasyMock.verify;
+import static junit.framework.Assert.*;
+import static org.easymock.EasyMock.*;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -18,11 +10,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.servlet.FilterChain;
-import javax.servlet.FilterConfig;
-import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
+import javax.servlet.*;
 import javax.servlet.http.HttpServletResponse;
 
 import org.junit.After;
@@ -32,11 +20,7 @@ import org.junit.Test;
 import com.cognifide.cq.cache.model.ResourceResolverStub;
 import com.cognifide.cq.cache.refresh.jcr.JcrEventListener;
 import com.cognifide.cq.cache.refresh.jcr.JcrEventsService;
-import com.cognifide.cq.cache.test.utils.ComponentContextStub;
-import com.cognifide.cq.cache.test.utils.ReflectionHelper;
-import com.cognifide.cq.cache.test.utils.ResourceStub;
-import com.cognifide.cq.cache.test.utils.ServletContextStub;
-import com.cognifide.cq.cache.test.utils.SlingHttpServletRequestStub;
+import com.cognifide.cq.cache.test.utils.*;
 import com.opensymphony.oscache.base.Cache;
 import com.opensymphony.oscache.base.EntryRefreshPolicy;
 import com.opensymphony.oscache.base.NeedsRefreshException;
@@ -184,10 +168,15 @@ public class ComponentCacheFilterTest {
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
 		baos.write("helloWorld".getBytes());
 
+		String s = "text/html";
+
 		expect(cacheAdministratorMock.getAppScopeCache(servletContext)).andReturn(cache);
 		expect(cache.getFromCache("/content/resource/path")).andReturn(baos);
+		expect(cache.getFromCache("/content/resource/path_ResponseContentType")).andReturn(s);
 
 		PrintWriter writer = createMock(PrintWriter.class);
+
+		response.setContentType(s);
 		expect(response.getCharacterEncoding()).andReturn("UTF-8");
 		expect(response.getWriter()).andReturn(writer);
 
@@ -230,11 +219,13 @@ public class ComponentCacheFilterTest {
 		};
 
 		cache.putInCache((String) notNull(), (Object) notNull(), (EntryRefreshPolicy) notNull());
+		cache.putInCache((String) notNull(), (Object) notNull(), (EntryRefreshPolicy) notNull());
 		cache.addCacheEventListener((CacheEventListener) notNull());
 
 		PrintWriter writer = createMock(PrintWriter.class);
 		expect(response.getCharacterEncoding()).andReturn("UTF-8");
 		expect(response.getCharacterEncoding()).andReturn("UTF-8");
+		expect(response.getContentType()).andReturn("text/html");
 		expect(response.getWriter()).andReturn(writer);
 
 		writer.write("helloWorld");
