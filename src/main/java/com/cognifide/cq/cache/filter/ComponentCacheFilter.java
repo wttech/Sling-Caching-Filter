@@ -157,6 +157,7 @@ public class ComponentCacheFilter implements Filter, ICacheKeyProvider, ICacheGr
 
 	public static final String SERVLET_CONTEXT_CACHE_DURATION = ComponentCacheFilter.class.getName()
 			+ ".cache.duration";
+	public static final String RESPONSE_CONTENT_TYPE_POSTFIX = "_ResponseContentType";
 
 	// Properties read from configuration
 
@@ -366,10 +367,14 @@ public class ComponentCacheFilter implements Filter, ICacheKeyProvider, ICacheGr
 		String key = generator.generateKey(cacheConfiguration.getCacheLevel(), httpRequest.getResource(),
 				httpRequest.getRequestPathInfo().getSelectorString());
 
+		String contentTypeCacheKey = key + RESPONSE_CONTENT_TYPE_POSTFIX;
+
 		ByteArrayOutputStream result = null;
 
 		try {
 			result = (ByteArrayOutputStream) cache.getFromCache(key);
+			String contentType = (String)cache.getFromCache(contentTypeCacheKey);
+			response.setContentType(contentType);
 
 			if (log.isInfoEnabled()) {
 				log.info("<cache>: Using cached entry for " + key);
@@ -388,6 +393,7 @@ public class ComponentCacheFilter implements Filter, ICacheKeyProvider, ICacheGr
 			FilterJcrRefreshPolicy refreshPolicy = new FilterJcrRefreshPolicy(key, cacheConfiguration);
 			try {
 				cache.putInCache(key, result, refreshPolicy);
+				cache.putInCache(contentTypeCacheKey, response.getContentType(), refreshPolicy);
 			} finally {
 				// finally block used to make sure that all data binded to the current thread is cleared
 				SilentRemovalNotificator.notifyListeners(cache);

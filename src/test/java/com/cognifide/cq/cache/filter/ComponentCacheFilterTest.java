@@ -184,10 +184,15 @@ public class ComponentCacheFilterTest {
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
 		baos.write("helloWorld".getBytes());
 
+		String s = "text/html";
+
 		expect(cacheAdministratorMock.getAppScopeCache(servletContext)).andReturn(cache);
 		expect(cache.getFromCache("/content/resource/path")).andReturn(baos);
+		expect(cache.getFromCache("/content/resource/path_ResponseContentType")).andReturn(s);
 
 		PrintWriter writer = createMock(PrintWriter.class);
+
+		response.setContentType(s);
 		expect(response.getCharacterEncoding()).andReturn("UTF-8");
 		expect(response.getWriter()).andReturn(writer);
 
@@ -230,11 +235,13 @@ public class ComponentCacheFilterTest {
 		};
 
 		cache.putInCache((String) notNull(), (Object) notNull(), (EntryRefreshPolicy) notNull());
+		cache.putInCache((String) notNull(), (Object) notNull(), (EntryRefreshPolicy) notNull());
 		cache.addCacheEventListener((CacheEventListener) notNull());
 
 		PrintWriter writer = createMock(PrintWriter.class);
 		expect(response.getCharacterEncoding()).andReturn("UTF-8");
 		expect(response.getCharacterEncoding()).andReturn("UTF-8");
+		expect(response.getContentType()).andReturn("text/html");
 		expect(response.getWriter()).andReturn(writer);
 
 		writer.write("helloWorld");
