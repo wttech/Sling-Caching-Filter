@@ -1,8 +1,10 @@
 package com.cognifide.cq.cache.plugins.statistics.html;
 
 import com.cognifide.cq.cache.cache.CacheHolder;
+import com.cognifide.cq.cache.expiry.collection.GuardCollectionWalker;
 import com.cognifide.cq.cache.plugins.statistics.StatisticEntry;
 import com.cognifide.cq.cache.plugins.statistics.Statistics;
+import com.cognifide.cq.cache.plugins.statistics.action.ActionCreator;
 import java.util.HashSet;
 import java.util.Set;
 import javax.management.AttributeNotFoundException;
@@ -64,7 +66,7 @@ public class HtmlBuilder {
 			+ "    context: $(this),\n"
 			+ "    data: {"
 			+ "      '" + Statistics.CACHE_NAME_PARAMETER + "': key,"
-			+ "      '" + Statistics.ACTION_PARAMETER + "': '" + Statistics.DELETE_ACTION_PARAMETER_VALUE + "'"
+			+ "      '" + ActionCreator.ACTION_PARAMETER + "': '" + ActionCreator.DELETE.getParameter() + "'"
 			+ "    }\n"
 			+ "  }).done(function(data) {\n"
 			+ "    $(this).siblings('span').text('Cache cleared.');\n"
@@ -81,7 +83,7 @@ public class HtmlBuilder {
 			+ "    context: $(this),\n"
 			+ "    data: {"
 			+ "      '" + Statistics.CACHE_NAME_PARAMETER + "': key,"
-			+ "      '" + Statistics.ACTION_PARAMETER + "': '" + Statistics.SHOW_KEYS_ACTION_PARAMETER_VALUE + "'"
+			+ "      '" + ActionCreator.ACTION_PARAMETER + "': '" + ActionCreator.SHOW_KEYS.getParameter() + "'"
 			+ "    }\n"
 			+ "  }).done(function(data) {\n"
 			+ "    $(this).siblings('div.cache-keys').append(data);"
@@ -131,7 +133,7 @@ public class HtmlBuilder {
 		return String.format(TH_OPENING_TAG_WITH_CLASS_ATTRIBUTE, cssClasses) + o.toString() + TH_CLOSING_TAG;
 	}
 
-	public String build(CacheHolder cacheHolder) {
+	public String build(CacheHolder cacheHolder, GuardCollectionWalker guardCollectionWalker) {
 		Set<StatisticEntry> statisticEntries = readStatisticsFromMBean(cacheHolder);
 
 		StringBuilder markup = new StringBuilder();
@@ -144,8 +146,11 @@ public class HtmlBuilder {
 		appendHeaders(markup);
 
 		appendData(markup, statisticEntries);
+
 		markup.append("</table>")
 				.append("</div>");
+
+		markup.append(div("Number of guards: " + guardCollectionWalker.getGuards().size()));
 
 		appendJavaScript(markup);
 

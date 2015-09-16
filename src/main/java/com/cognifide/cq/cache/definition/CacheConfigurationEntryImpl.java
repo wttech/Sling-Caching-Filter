@@ -1,20 +1,23 @@
 package com.cognifide.cq.cache.definition;
 
+import com.google.common.base.Preconditions;
+
 /**
  * @author Jakub Malecki
  */
 public class CacheConfigurationEntryImpl implements CacheConfigurationEntry {
 
-	private String resourceType;
+	private final String resourceType;
 
-	private int validityTimeInSeconds;
+	private final int validityTimeInSeconds;
 
-	private int cacheLevel;
+	private final int cacheLevel;
 
-	public CacheConfigurationEntryImpl(String resourceType, int time, int cacheLevel) {
-		this.resourceType = resourceType;
-		this.validityTimeInSeconds = time;
-		this.cacheLevel = cacheLevel;
+	public CacheConfigurationEntryImpl(CacheConfigurationEntry cacheConfigurationEntry) {
+		Preconditions.checkNotNull(cacheConfigurationEntry);
+		this.resourceType = Preconditions.checkNotNull(cacheConfigurationEntry.getResourceType());
+		this.validityTimeInSeconds = cacheConfigurationEntry.getValidityTimeInSeconds();
+		this.cacheLevel = cacheConfigurationEntry.getCacheLevel();
 	}
 
 	@Override
@@ -22,26 +25,13 @@ public class CacheConfigurationEntryImpl implements CacheConfigurationEntry {
 		return resourceType;
 	}
 
-	public void setResourceType(String resourceType) {
-		this.resourceType = resourceType;
-	}
-
 	@Override
-	public Integer getValidityTimeInSeconds() {
+	public int getValidityTimeInSeconds() {
 		return validityTimeInSeconds;
 	}
 
-	public void setValidityTimeInSeconds(int validityTimeInSeconds) {
-		this.validityTimeInSeconds = validityTimeInSeconds;
-	}
-
 	@Override
-	public Integer getCacheLevel() {
+	public int getCacheLevel() {
 		return cacheLevel;
 	}
-
-	public void setCacheLevel(int cacheLevel) {
-		this.cacheLevel = cacheLevel;
-	}
-
 }

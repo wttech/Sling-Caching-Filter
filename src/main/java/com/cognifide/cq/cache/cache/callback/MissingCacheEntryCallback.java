@@ -1,21 +1,21 @@
 package com.cognifide.cq.cache.cache.callback;
 
-import java.io.ByteArrayOutputStream;
+import com.cognifide.cq.cache.cache.CacheEntity;
 import java.io.IOException;
 import javax.servlet.ServletException;
 
 /**
- * Callback interface used when entry is missing in cache
+ * Callback interface used when there is no entity in cache
  */
 public interface MissingCacheEntryCallback {
 
 	/**
-	 * Execute callback and generates content
+	 * Executes callback and generates entity.
 	 *
-	 * @return content
+	 * @return entity stored in cache
 	 * @throws IOException
 	 * @throws ServletException
 	 */
-	ByteArrayOutputStream doCallback() throws IOException, ServletException;
+	CacheEntity generateCacheEntity() throws IOException, ServletException;
 
 }

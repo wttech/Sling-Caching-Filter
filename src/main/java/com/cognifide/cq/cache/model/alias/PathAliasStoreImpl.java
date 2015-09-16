@@ -1,8 +1,8 @@
 package com.cognifide.cq.cache.model.alias;
 
+import com.google.common.collect.Maps;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Pattern;
 import org.apache.commons.lang.StringUtils;
@@ -19,12 +19,14 @@ public class PathAliasStoreImpl implements PathAliasStore {
 
 	@Activate
 	protected void activate() {
-		aliases = new HashMap<String, PathAlias>();
+		aliases = Maps.newHashMap();
 	}
 
 	@Override
-	public boolean isAlias(String path) {
-		return aliases.containsKey(path);
+	public void populate(String[] aliasesString) {
+		for (PathAlias pathAlias : new PathAliasReader().readAliases(aliasesString)) {
+			aliases.put(pathAlias.getName(), pathAlias);
+		}
 	}
 
 	@Override
@@ -40,10 +42,8 @@ public class PathAliasStoreImpl implements PathAliasStore {
 	}
 
 	@Override
-	public void addAliases(Collection<PathAlias> pathAliases) {
-		for (PathAlias pathAlias : pathAliases) {
-			aliases.put(pathAlias.getName(), pathAlias);
-		}
+	public boolean isAlias(String path) {
+		return aliases.containsKey(path);
 	}
 
 	@Deactivate

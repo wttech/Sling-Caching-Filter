@@ -1,24 +1,10 @@
-/*
- * Copyright 2015 Cognifide Polska Sp. z o. o..
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package com.cognifide.cq.cache.model;
 
 import com.cognifide.cq.cache.definition.ResourceTypeCacheDefinition;
 import com.cognifide.cq.cache.model.alias.PathAliasStore;
 import com.day.cq.wcm.api.Page;
 import com.day.cq.wcm.api.PageManager;
+import com.google.common.base.Preconditions;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 import org.apache.commons.lang.StringUtils;
@@ -43,10 +29,10 @@ class DefinitionPathTranslator {
 
 	DefinitionPathTranslator(PathAliasStore pathAliasStore, ResourceTypeCacheDefinition definition,
 			ResourceTypeCacheConfiguration configuration, Resource resource) {
-		this.pathAliasStore = pathAliasStore;
-		this.definition = definition;
-		this.configuration = configuration;
-		this.resource = resource;
+		this.pathAliasStore = Preconditions.checkNotNull(pathAliasStore);
+		this.definition = Preconditions.checkNotNull(definition);
+		this.configuration = Preconditions.checkNotNull(configuration);
+		this.resource = Preconditions.checkNotNull(resource);
 	}
 
 	void translatePaths() {
@@ -96,13 +82,17 @@ class DefinitionPathTranslator {
 		ValueMap valueMap = resource.adaptTo(ValueMap.class);
 		if (valueMap != null) {
 			for (String name : definition.getInvalidateOnReferencedFields()) {
-				Object value = valueMap.get(name);
-				if (isString(value)) {
-					String stringValue = (String) value;
-					if (StringUtils.isNotBlank(stringValue)) {
-						configuration.addInvalidationPathPrefix(stringValue);
-					}
-				}
+				handleReferencedField(valueMap, name);
+			}
+		}
+	}
+
+	private void handleReferencedField(ValueMap valueMap, String name) {
+		Object value = valueMap.get(name);
+		if (isString(value)) {
+			String stringValue = (String) value;
+			if (StringUtils.isNotBlank(stringValue)) {
+				configuration.addInvalidationPathPrefix(stringValue);
 			}
 		}
 	}

@@ -1,18 +1,3 @@
-/*
- * Copyright 2015 Cognifide Polska Sp. z o. o..
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package com.cognifide.cq.cache.expiry.osgi;
 
 import com.cognifide.cq.cache.expiry.collection.GuardCollectionWalker;
@@ -32,7 +17,12 @@ import org.slf4j.LoggerFactory;
 @Service(value = {EventHandler.class})
 @Component(immediate = true)
 @Properties({
-	@Property(name = EventConstants.EVENT_TOPIC, value = {SlingConstants.TOPIC_RESOURCE_ADDED, SlingConstants.TOPIC_RESOURCE_CHANGED, SlingConstants.TOPIC_RESOURCE_REMOVED}),
+	@Property(
+			name = EventConstants.EVENT_TOPIC,
+			value = {
+				SlingConstants.TOPIC_RESOURCE_ADDED,
+				SlingConstants.TOPIC_RESOURCE_CHANGED,
+				SlingConstants.TOPIC_RESOURCE_REMOVED}),
 	@Property(name = EventConstants.EVENT_FILTER, value = "(|(path=/content/*)(path=/apps/*))")
 })
 public class OsgiEventsService implements EventHandler {
@@ -40,17 +30,17 @@ public class OsgiEventsService implements EventHandler {
 	private static final Logger logger = LoggerFactory.getLogger(OsgiEventsService.class);
 
 	@Reference
-	private GuardCollectionWalker garnisonWalker;
+	private GuardCollectionWalker collectionWalker;
 
 	@Override
 	public void handleEvent(Event event) {
 		String path = readPathFrom(event);
 
-		if (logger.isInfoEnabled()) {
-			logger.info("Processing {}", path);
+		if (logger.isDebugEnabled()) {
+			logger.debug("Processing {}", path);
 		}
 
-		for (ExpiryGuard expiryGuard : garnisonWalker.getGuards()) {
+		for (ExpiryGuard expiryGuard : collectionWalker.getGuards()) {
 			expiryGuard.onContentChange(path);
 		}
 	}

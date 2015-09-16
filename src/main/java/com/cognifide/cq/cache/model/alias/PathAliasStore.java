@@ -9,11 +9,12 @@ import java.util.regex.Pattern;
 public interface PathAliasStore {
 
 	/**
-	 * Adds collection of path aliases to the store
+	 * Populates store with aliases.
 	 *
-	 * @param aliases - path aliases to be added
+	 * @param aliasesString - aliases string. Syntax: `$&lt;alias name&gt;|&lt;path 1&gt;|&lt;path 2&gt; |...`, where
+	 * `$` is a mandatory character before alias name, and `|` is a separator between paths
 	 */
-	void addAliases(Collection<PathAlias> aliases);
+	void populate(String[] aliasesString);
 
 	/**
 	 * Searches for alias and returns paths that were assigned to it

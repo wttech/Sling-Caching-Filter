@@ -1,5 +1,8 @@
 package com.cognifide.cq.cache.definition;
 
+/**
+ * Holds concrete cache configuration.
+ */
 public interface CacheConfigurationEntry {
 
 	/**
@@ -15,13 +18,13 @@ public interface CacheConfigurationEntry {
 	 *
 	 * @return validity time in seconds
 	 */
-	Integer getValidityTimeInSeconds();
+	int getValidityTimeInSeconds();
 
 	/**
 	 * Specifies the level of component caching. By default set to -1.
 	 *
 	 * @return level of cache
 	 */
-	Integer getCacheLevel();
+	int getCacheLevel();
 
 }

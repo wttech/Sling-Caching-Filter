@@ -2,5 +2,8 @@
 .settings
 .classpath
 .project
+.sonar
 nb-configuration.xml
 nbactions.xml
+/nbproject/
+sonar-project.properties

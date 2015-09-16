@@ -1,24 +1,11 @@
-/*
- * Copyright 2015 Cognifide Polska Sp. z o. o..
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package com.cognifide.cq.cache.model;
 
 import com.cognifide.cq.cache.definition.ResourceTypeCacheDefinition;
 import com.cognifide.cq.cache.model.alias.PathAliasStore;
 import com.day.cq.wcm.api.Page;
 import com.day.cq.wcm.api.PageManager;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.regex.Pattern;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
@@ -90,7 +77,7 @@ public class DefinitionPathTranslatorTest {
 	}
 
 	@Test
-	public void configuratioShouldNotHaveInvalidationPathsWhenDefintionIsOff() {
+	public void configuratioShouldNotHaveInvalidationPathsWhenDefintionIsNotEnabled() {
 		//given
 		when(definition.isEnabled()).thenReturn(false);
 
@@ -107,8 +94,8 @@ public class DefinitionPathTranslatorTest {
 		when(definition.isEnabled()).thenReturn(true);
 		when(definition.isInvalidateOnSelf()).thenReturn(false);
 		when(definition.isInvalidateOnContainingPage()).thenReturn(false);
-		when(definition.getInvalidateOnPaths()).thenReturn(new String[0]);
-		when(definition.getInvalidateOnReferencedFields()).thenReturn(new String[0]);
+		when(definition.getInvalidateOnPaths()).thenReturn(Collections.<String>emptySet());
+		when(definition.getInvalidateOnReferencedFields()).thenReturn(Collections.<String>emptySet());
 
 		setUpRepository();
 
@@ -138,8 +125,8 @@ public class DefinitionPathTranslatorTest {
 		when(definition.isEnabled()).thenReturn(true);
 		when(definition.isInvalidateOnSelf()).thenReturn(true);
 		when(definition.isInvalidateOnContainingPage()).thenReturn(false);
-		when(definition.getInvalidateOnPaths()).thenReturn(new String[0]);
-		when(definition.getInvalidateOnReferencedFields()).thenReturn(new String[0]);
+		when(definition.getInvalidateOnPaths()).thenReturn(Collections.<String>emptySet());
+		when(definition.getInvalidateOnReferencedFields()).thenReturn(Collections.<String>emptySet());
 
 		setUpRepository();
 
@@ -158,8 +145,8 @@ public class DefinitionPathTranslatorTest {
 		when(definition.isEnabled()).thenReturn(true);
 		when(definition.isInvalidateOnSelf()).thenReturn(true);
 		when(definition.isInvalidateOnContainingPage()).thenReturn(true);
-		when(definition.getInvalidateOnPaths()).thenReturn(new String[0]);
-		when(definition.getInvalidateOnReferencedFields()).thenReturn(new String[0]);
+		when(definition.getInvalidateOnPaths()).thenReturn(Collections.<String>emptySet());
+		when(definition.getInvalidateOnReferencedFields()).thenReturn(Collections.<String>emptySet());
 
 		setUpRepository();
 
@@ -179,8 +166,8 @@ public class DefinitionPathTranslatorTest {
 		when(definition.isEnabled()).thenReturn(true);
 		when(definition.isInvalidateOnSelf()).thenReturn(true);
 		when(definition.isInvalidateOnContainingPage()).thenReturn(true);
-		when(definition.getInvalidateOnPaths()).thenReturn(INVALIDATE_ON_PATHS_ARRAY);
-		when(definition.getInvalidateOnReferencedFields()).thenReturn(new String[0]);
+		when(definition.getInvalidateOnPaths()).thenReturn(Arrays.asList(INVALIDATE_ON_PATHS_ARRAY));
+		when(definition.getInvalidateOnReferencedFields()).thenReturn(Collections.<String>emptySet());
 
 		when(pathAliasStore.isAlias(anyString())).thenReturn(false);
 		setUpRepository();
@@ -202,8 +189,8 @@ public class DefinitionPathTranslatorTest {
 		when(definition.isEnabled()).thenReturn(true);
 		when(definition.isInvalidateOnSelf()).thenReturn(true);
 		when(definition.isInvalidateOnContainingPage()).thenReturn(true);
-		when(definition.getInvalidateOnPaths()).thenReturn(INVALIDATE_ON_PATHS_ARRAY);
-		when(definition.getInvalidateOnReferencedFields()).thenReturn(INVALIDATE_ON_FIELDS);
+		when(definition.getInvalidateOnPaths()).thenReturn(Arrays.asList(INVALIDATE_ON_PATHS_ARRAY));
+		when(definition.getInvalidateOnReferencedFields()).thenReturn(Arrays.asList(INVALIDATE_ON_FIELDS));
 
 		when(pathAliasStore.isAlias(anyString())).thenReturn(false);
 		setUpRepository();

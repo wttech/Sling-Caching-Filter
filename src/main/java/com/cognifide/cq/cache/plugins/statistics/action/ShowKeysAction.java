@@ -1,18 +1,3 @@
-/*
- * Copyright 2015 Cognifide Polska Sp. z o. o..
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package com.cognifide.cq.cache.plugins.statistics.action;
 
 import com.cognifide.cq.cache.cache.CacheHolder;
@@ -45,7 +30,9 @@ public class ShowKeysAction implements StatisticsAction {
 	public void exectue() {
 		String cacheName = request.getParameter(Statistics.CACHE_NAME_PARAMETER);
 		if (StringUtils.isNotEmpty(cacheName)) {
-			logger.info("Keys from {} cache will be collected", cacheName);
+			if (logger.isInfoEnabled()) {
+				logger.info("Keys from {} cache will be collected", cacheName);
+			}
 			try {
 				readKeysFrom(cacheName);
 			} catch (IOException x) {

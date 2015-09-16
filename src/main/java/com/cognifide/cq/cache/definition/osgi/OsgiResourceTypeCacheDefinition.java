@@ -1,25 +1,26 @@
 package com.cognifide.cq.cache.definition.osgi;
 
 import com.cognifide.cq.cache.definition.ResourceTypeCacheDefinition;
-import java.util.ArrayList;
+import com.cognifide.cq.cache.filter.osgi.CacheConfiguration;
+import com.google.common.base.Predicate;
+import com.google.common.collect.Iterables;
 import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
 import org.apache.commons.lang.StringUtils;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
+import org.apache.felix.scr.annotations.Modified;
 import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.PropertyUnbounded;
+import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.Service;
 import org.osgi.service.component.ComponentContext;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-@Component(configurationFactory = true, metatype = true, immediate = true, label = "Sling Caching Filter Resource Type Definition")
+@Component(
+		configurationFactory = true,
+		metatype = true,
+		label = "Sling Caching Filter Resource Type Definition")
 @Service
 public class OsgiResourceTypeCacheDefinition implements ResourceTypeCacheDefinition {
-
-	private static final Logger logger = LoggerFactory.getLogger(OsgiResourceTypeCacheDefinition.class);
 
 	private static final boolean ENABLED_PROPERTY_DEFAULT_VALUE = false;
 
@@ -30,6 +31,8 @@ public class OsgiResourceTypeCacheDefinition implements ResourceTypeCacheDefinit
 	private static final boolean INVALIDATE_ON_SELF_PROPERTY_DEFAULT_VALUE = true;
 
 	private static final boolean INVALIDATE_ON_CONTAINING_PAGE_PROPERTY_DEFAULT_VALUE = false;
+
+	private static final Predicate<String> NOT_BLANK_PREDICATE = new NotBlankPredicate();
 
 	@Property(
 			label = "Active",
@@ -77,51 +80,44 @@ public class OsgiResourceTypeCacheDefinition implements ResourceTypeCacheDefinit
 			unbounded = PropertyUnbounded.ARRAY)
 	private static final String INVALIDATE_ON_PATHS_PROPERTY = "cache.config.invalidate.on.paths";
 
-	private Boolean active;
+	@Reference
+	private CacheConfiguration cacheConfiguration;
+
+	private boolean active;
 
 	private String resourceType;
 
-	private Integer validityTime;
+	private int validityTime;
 
-	private String cacheLevel;
+	private int cacheLevel;
 
-	private Boolean invalidateOnSelf;
+	private boolean invalidateOnSelf;
 
-	private Boolean invalidateOnContainingPage;
+	private boolean invalidateOnContainingPage;
 
-	private String[] invalidateOnReferencedFields;
+	private Iterable<String> invalidateOnReferencedFields;
 
-	private String[] invalidateOnPaths;
+	private Iterable<String> invalidateOnPaths;
 
 	@Activate
-	public void activate(ComponentContext componentContext) {
+	@Modified
+	protected void activate(ComponentContext componentContext) {
 		active = OsgiConfigurationHelper.getBooleanValueFrom(ACTIVE_PROPERTY, componentContext);
 		resourceType = OsgiConfigurationHelper.getStringValueFrom(RESOURCE_TYPE_PROPERTY, componentContext);
 		validityTime = OsgiConfigurationHelper.getIntegerValueFrom(VALIDITY_TIME_PROPERTY, componentContext);
-		cacheLevel = OsgiConfigurationHelper.getStringValueFrom(CACHE_LEVEL_PROPERTY, componentContext);
+		cacheLevel = OsgiConfigurationHelper.getIntegerValueFrom(CACHE_LEVEL_PROPERTY, componentContext, INT_CACHE_LEVEL_PROPERTY_DEFAULT_VALUE);
 		invalidateOnSelf = OsgiConfigurationHelper.getBooleanValueFrom(INVALIDATE_ON_SELF_PROPERTY, componentContext);
 		invalidateOnContainingPage = OsgiConfigurationHelper.getBooleanValueFrom(INVALIDATE_ON_CONTAINING_PAGE_PROPERTY, componentContext);
-		invalidateOnReferencedFields = OsgiConfigurationHelper.getStringArrayValuesFrom(INVALIDATE_ON_REFERENCED_FIELDS_PROPERTY, componentContext);
-		invalidateOnPaths = OsgiConfigurationHelper.getStringArrayValuesFrom(INVALIDATE_ON_PATHS_PROPERTY, componentContext);
-
-		clean(invalidateOnReferencedFields);
-		clean(invalidateOnPaths);
+		invalidateOnReferencedFields = transformAndClean(OsgiConfigurationHelper.getStringArrayValuesFrom(INVALIDATE_ON_REFERENCED_FIELDS_PROPERTY, componentContext));
+		invalidateOnPaths = transformAndClean(OsgiConfigurationHelper.getStringArrayValuesFrom(INVALIDATE_ON_PATHS_PROPERTY, componentContext));
 	}
 
-	private String[] clean(String[] array) {
-		List<String> list = new ArrayList<String>(Arrays.asList(array));
-		Iterator<String> iterator = list.iterator();
-		while (iterator.hasNext()) {
-			String value = iterator.next();
-			if (StringUtils.isBlank(value)) {
-				iterator.remove();
-			}
-		}
-		return list.toArray(new String[list.size()]);
+	private Iterable<String> transformAndClean(String[] array) {
+		return Iterables.filter(Arrays.asList(array), NOT_BLANK_PREDICATE);
 	}
 
 	@Override
-	public Boolean isEnabled() {
+	public boolean isEnabled() {
 		return active;
 	}
 
@@ -131,39 +127,33 @@ public class OsgiResourceTypeCacheDefinition implements ResourceTypeCacheDefinit
 	}
 
 	@Override
-	public Integer getValidityTimeInSeconds() {
-		return validityTime;
+	public int getValidityTimeInSeconds() {
+		return 0 < validityTime ? validityTime : cacheConfiguration.getValidityTimeInSeconds();
 	}
 
 	@Override
-	public Integer getCacheLevel() {
-		Integer result = INT_CACHE_LEVEL_PROPERTY_DEFAULT_VALUE;
-		try {
-			result = Integer.parseInt(cacheLevel);
-		} catch (NumberFormatException x) {
-			logger.error("Error while converting cache level to integer", x);
-		}
-		return result;
+	public int getCacheLevel() {
+		return cacheLevel;
 	}
 
 	@Override
-	public Boolean isInvalidateOnSelf() {
+	public boolean isInvalidateOnSelf() {
 		return invalidateOnSelf;
 	}
 
 	@Override
-	public Boolean isInvalidateOnContainingPage() {
+	public boolean isInvalidateOnContainingPage() {
 		return invalidateOnContainingPage;
 	}
 
 	@Override
-	public String[] getInvalidateOnReferencedFields() {
-		return Arrays.copyOf(invalidateOnReferencedFields, invalidateOnReferencedFields.length);
+	public Iterable<String> getInvalidateOnReferencedFields() {
+		return invalidateOnReferencedFields;
 	}
 
 	@Override
-	public String[] getInvalidateOnPaths() {
-		return Arrays.copyOf(invalidateOnPaths, invalidateOnPaths.length);
+	public Iterable<String> getInvalidateOnPaths() {
+		return invalidateOnPaths;
 	}
 
 	@Override

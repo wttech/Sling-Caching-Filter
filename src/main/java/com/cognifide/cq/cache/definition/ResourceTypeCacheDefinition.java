@@ -10,21 +10,21 @@ public interface ResourceTypeCacheDefinition extends CacheConfigurationEntry {
 	 *
 	 * @return true if cache is enabled, false otherwise
 	 */
-	Boolean isEnabled();
+	boolean isEnabled();
 
 	/**
 	 * When set to true cached instance will be refreshed if it has been changed. By default set to true.
 	 *
 	 * @return true if resource should invalidate on itself, false otherwise
 	 */
-	Boolean isInvalidateOnSelf();
+	boolean isInvalidateOnSelf();
 
 	/**
 	 * When set to true cached instance will be refreshed if page containing this instance has been changed
 	 *
 	 * @return true if resource should invalidate on containing page change, false otherwise
 	 */
-	Boolean isInvalidateOnContainingPage();
+	boolean isInvalidateOnContainingPage();
 
 	/**
 	 * List of component fields that store links to content/configuration/etc. pages. Links from those fields are loaded
@@ -33,7 +33,7 @@ public interface ResourceTypeCacheDefinition extends CacheConfigurationEntry {
 	 *
 	 * @return array of referenced fields, does not contain null or blank values
 	 */
-	String[] getInvalidateOnReferencedFields();
+	Iterable<String> getInvalidateOnReferencedFields();
 
 	/**
 	 * List of paths (regular expressions). If a path of any changed JCR node matches any path from the list then the
@@ -41,7 +41,7 @@ public interface ResourceTypeCacheDefinition extends CacheConfigurationEntry {
 	 *
 	 * @return array of paths on which invalidation should be triggered, does not contain null or blank values
 	 */
-	String[] getInvalidateOnPaths();
+	Iterable<String> getInvalidateOnPaths();
 
 	/**
 	 * Check definition validity

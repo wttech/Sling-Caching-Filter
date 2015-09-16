@@ -1,10 +1,10 @@
 package com.cognifide.cq.cache.plugins.statistics;
 
 import com.cognifide.cq.cache.cache.CacheHolder;
-import com.cognifide.cq.cache.plugins.statistics.action.ClearAction;
-import com.cognifide.cq.cache.plugins.statistics.action.ShowKeysAction;
-import com.cognifide.cq.cache.plugins.statistics.action.StatisticsAction;
+import com.cognifide.cq.cache.expiry.collection.GuardCollectionWalker;
+import com.cognifide.cq.cache.plugins.statistics.action.ActionCreator;
 import com.cognifide.cq.cache.plugins.statistics.html.HtmlBuilder;
+import com.google.common.base.Optional;
 import java.io.IOException;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
@@ -32,42 +32,25 @@ public class Statistics extends HttpServlet {
 
 	public static final String CACHE_NAME_PARAMETER = "cacheName";
 
-	public static final String ACTION_PARAMETER = "action";
-
-	public static final String DELETE_ACTION_PARAMETER_VALUE = "delete";
-
-	public static final String SHOW_KEYS_ACTION_PARAMETER_VALUE = "showKeys";
-
 	@Reference
 	private CacheHolder cacheHolder;
 
+	@Reference
+	private GuardCollectionWalker guardCollectionWalker;
+
 	@Override
 	protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-		resp.getWriter().write(new HtmlBuilder().build(cacheHolder));
+		resp.getWriter().write(new HtmlBuilder().build(cacheHolder, guardCollectionWalker));
 	}
 
 	@Override
 	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-		StatisticsAction statisticsAction = readActionFromRequest(request, response);
-		if (null != statisticsAction) {
-			statisticsAction.exectue();
+		Optional<ActionCreator> actionCreator = ActionCreator.from(request);
+		if (actionCreator.isPresent()) {
+			actionCreator.get().create(request, response, cacheHolder).exectue();
 		} else {
 			logger.error("Error. No valid [action] prameter.");
 			response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
 		}
 	}
-
-	private StatisticsAction readActionFromRequest(HttpServletRequest request, HttpServletResponse response) {
-		StatisticsAction statisticsAction = null;
-
-		String action = request.getParameter(ACTION_PARAMETER);
-		if (DELETE_ACTION_PARAMETER_VALUE.equals(action)) {
-			statisticsAction = new ClearAction(request, response, cacheHolder);
-		} else if (SHOW_KEYS_ACTION_PARAMETER_VALUE.equals(action)) {
-			statisticsAction = new ShowKeysAction(request, response, cacheHolder);
-		}
-
-		return statisticsAction;
-	}
-
 }

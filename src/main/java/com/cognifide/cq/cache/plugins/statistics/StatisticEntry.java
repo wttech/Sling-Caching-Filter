@@ -1,7 +1,10 @@
 package com.cognifide.cq.cache.plugins.statistics;
 
 import com.cognifide.cq.cache.cache.CacheHolder;
+import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
 import java.lang.management.ManagementFactory;
+import java.net.URI;
 import javax.management.AttributeNotFoundException;
 import javax.management.InstanceNotFoundException;
 import javax.management.MBeanException;
@@ -35,9 +38,10 @@ public class StatisticEntry {
 	public StatisticEntry(CacheHolder cacheHolder, String cacheName)
 			throws MBeanException, AttributeNotFoundException, InstanceNotFoundException, ReflectionException,
 			MalformedObjectNameException {
-		MBeanServer mBeanServer = ManagementFactory.getPlatformMBeanServer();
+		Preconditions.checkNotNull(cacheHolder);
+		this.cacheName = Preconditions.checkNotNull(cacheName);
 
-		this.cacheName = cacheName;
+		MBeanServer mBeanServer = ManagementFactory.getPlatformMBeanServer();
 
 		ObjectName objectName = buildObjectName(cacheHolder, cacheName);
 		this.cacheHits = (Long) mBeanServer.getAttribute(objectName, CACHE_HITS_FIELD_NAME);
@@ -46,8 +50,13 @@ public class StatisticEntry {
 	}
 
 	private ObjectName buildObjectName(CacheHolder cacheHolder, String cacheName) throws MalformedObjectNameException {
+		Optional<URI> uri = cacheHolder.getCacheManagerURI();
+		if (!uri.isPresent()) {
+			throw new IllegalStateException("Cache Manager did not respond with valid URI. Reason of this can be that cache manager is closed.");
+		}
+
 		String name = String.format(CACHE_OBJECT_NAME,
-				sanitize(cacheHolder.getCacheManagerURI().toString()),
+				sanitize(uri.get().toString()),
 				sanitize(cacheName));
 		if (logger.isDebugEnabled()) {
 			logger.debug("Build object name with {} name", name);

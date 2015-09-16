@@ -1,21 +1,6 @@
-/*
- * Copyright 2015 Cognifide Polska Sp. z o. o..
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package com.cognifide.cq.cache.filter.osgi;
 
-import java.io.ByteArrayOutputStream;
+import com.cognifide.cq.cache.cache.CacheEntity;
 import javax.cache.Cache;
 import javax.cache.CacheManager;
 
@@ -26,12 +11,12 @@ public interface CacheManagerProvider {
 	 *
 	 * @return cache manager
 	 */
-	CacheManager getCacheManger();
+	CacheManager getCacheManager();
 
 	/**
 	 * Updated cache configuration with specific vendor configuration
 	 *
 	 * @param cache - cache configuration that will be updated
 	 */
-	void updateCacheConfiguration(Cache<String, ByteArrayOutputStream> cache);
+	void updateCacheConfiguration(Cache<String, CacheEntity> cache);
 }

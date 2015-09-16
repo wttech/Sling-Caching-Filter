@@ -1,24 +1,8 @@
-/*
- * Copyright 2015 Cognifide Polska Sp. z o. o..
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package com.cognifide.cq.cache.filter.osgi;
 
+import com.cognifide.cq.cache.cache.CacheEntity;
 import com.cognifide.cq.cache.definition.osgi.OsgiConfigurationHelper;
-import com.cognifide.cq.cache.model.alias.PathAliasReader;
 import com.cognifide.cq.cache.model.alias.PathAliasStore;
-import java.io.ByteArrayOutputStream;
 import javax.cache.Cache;
 import javax.cache.CacheManager;
 import javax.cache.Caching;
@@ -29,6 +13,7 @@ import net.sf.ehcache.config.PersistenceConfiguration;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Deactivate;
+import org.apache.felix.scr.annotations.Modified;
 import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.PropertyOption;
 import org.apache.felix.scr.annotations.PropertyUnbounded;
@@ -40,9 +25,9 @@ import org.slf4j.LoggerFactory;
 
 @Component(label = "Sling Caching Filter", description = "Sling Caching Filter", metatype = true, immediate = true)
 @Service(value = {CacheConfiguration.class, CacheManagerProvider.class})
-public class CacheConfigurationImpl implements CacheConfiguration, CacheManagerProvider {
+public class EhCacheConfiguration implements CacheConfiguration, CacheManagerProvider {
 
-	private static final Logger logger = LoggerFactory.getLogger(CacheConfigurationImpl.class);
+	private static final Logger logger = LoggerFactory.getLogger(EhCacheConfiguration.class);
 
 	private static final String CACHING_PROVIDER = "org.ehcache.jcache.JCacheCachingProvider";
 
@@ -129,9 +114,8 @@ public class CacheConfigurationImpl implements CacheConfiguration, CacheManagerP
 	private String evictionPolicy;
 
 	@Activate
-	public void activate(ComponentContext context) {
-		String[] aliasesStrings = OsgiConfigurationHelper.getStringArrayValuesFrom(PROPERTY_PATH_ALIASES, context);
-		pathAliasStore.addAliases(new PathAliasReader().readAliases(aliasesStrings));
+	protected void activate(ComponentContext context) {
+		pathAliasStore.populate(OsgiConfigurationHelper.getStringArrayValuesFrom(PROPERTY_PATH_ALIASES, context));
 
 		enabled = OsgiConfigurationHelper.getBooleanValueFrom(FILTER_ENABLED_PROPERTY, context);
 		validityTime = OsgiConfigurationHelper.getIntegerValueFrom(VALIDITY_TIME_PROPERTY, context);
@@ -150,7 +134,9 @@ public class CacheConfigurationImpl implements CacheConfiguration, CacheManagerP
 			CachingProvider cachingProvider = Caching.getCachingProvider(CACHING_PROVIDER);
 			cacheManager = cachingProvider.getCacheManager();
 			configureCacheManagerVendorSpecific();
-			logger.info("Cache manager {} was created.", cacheManager.getURI());
+			if (logger.isInfoEnabled()) {
+				logger.info("Cache manager {} was created.", cacheManager.getURI());
+			}
 		}
 	}
 
@@ -186,8 +172,14 @@ public class CacheConfigurationImpl implements CacheConfiguration, CacheManagerP
 		}
 	}
 
+	@Modified
+	protected void modified(ComponentContext context) {
+		deactivate();
+		activate(context);
+	}
+
 	@Override
-	public void updateCacheConfiguration(Cache<String, ByteArrayOutputStream> cache) {
+	public void updateCacheConfiguration(Cache<String, CacheEntity> cache) {
 		net.sf.ehcache.Cache ehCache = cache.unwrap(net.sf.ehcache.Cache.class);
 		net.sf.ehcache.config.CacheConfiguration cacheConfiguration = ehCache.getCacheConfiguration();
 		setCacheConfiguration(cacheConfiguration);
@@ -204,13 +196,15 @@ public class CacheConfigurationImpl implements CacheConfiguration, CacheManagerP
 	}
 
 	@Override
-	public CacheManager getCacheManger() {
+	public CacheManager getCacheManager() {
 		return cacheManager;
 	}
 
 	@Deactivate
 	protected void deactivate() {
-		cacheManager.close();
+		if (null != cacheManager && !cacheManager.isClosed()) {
+			cacheManager.close();
+		}
 	}
 
 }

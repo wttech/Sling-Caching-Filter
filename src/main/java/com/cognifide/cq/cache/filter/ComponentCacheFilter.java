@@ -1,10 +1,12 @@
 package com.cognifide.cq.cache.filter;
 
+import com.cognifide.cq.cache.cache.CacheEntity;
 import com.cognifide.cq.cache.cache.CacheHolder;
 import com.cognifide.cq.cache.cache.callback.ResponseCallback;
 import com.cognifide.cq.cache.filter.osgi.CacheConfiguration;
 import com.cognifide.cq.cache.model.ResourceTypeCacheConfiguration;
 import com.cognifide.cq.cache.model.reader.ResourceTypeCacheConfigurationReader;
+import com.google.common.base.Optional;
 import java.io.IOException;
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
@@ -44,7 +46,9 @@ public class ComponentCacheFilter implements Filter {
 
 	@Override
 	public void init(FilterConfig filterConfig) {
-		logger.info("Initializing Sling Caching Filter...");
+		if (logger.isInfoEnabled()) {
+			logger.info("Initializing Sling Caching Filter...");
+		}
 	}
 
 	@Override
@@ -54,8 +58,8 @@ public class ComponentCacheFilter implements Filter {
 			if (request instanceof SlingHttpServletRequest) {
 				handleRequest((SlingHttpServletRequest) request, response, chain);
 			} else {
-				if (logger.isInfoEnabled()) {
-					logger.info("Request is not a sling request.");
+				if (logger.isDebugEnabled()) {
+					logger.debug("Request is not a sling request.");
 				}
 				chain.doFilter(request, response);
 			}
@@ -69,21 +73,13 @@ public class ComponentCacheFilter implements Filter {
 
 	private void handleRequest(SlingHttpServletRequest request, ServletResponse response, FilterChain chain)
 			throws IOException, ServletException {
-		if (configurationReader.hasConfigurationFor(request)) {
-			ResourceTypeCacheConfiguration resourceTypeCacheConfiguration
-					= configurationReader.readComponentConfiguration(request);
-
-			if (null != resourceTypeCacheConfiguration && resourceTypeCacheConfiguration.isEnabled()) {
-				cacheRequestedResource(request, response, chain, resourceTypeCacheConfiguration);
-			} else {
-				if (logger.isInfoEnabled()) {
-					logger.info("Caching is disabled for {}", request.getResource().getResourceType());
-				}
-				chain.doFilter(request, response);
-			}
+		Optional<ResourceTypeCacheConfiguration> resourceTypeCacheConfiguration
+				= configurationReader.readComponentConfiguration(request);
+		if (resourceTypeCacheConfiguration.isPresent() && resourceTypeCacheConfiguration.get().isEnabled()) {
+			cacheRequestedResource(request, response, chain, resourceTypeCacheConfiguration.get());
 		} else {
 			if (logger.isDebugEnabled()) {
-				logger.debug("There is no configuration for {}", request.getResource().getResourceType());
+				logger.debug("There is no configuration or caching is disabled for {}", request.getResource().getResourceType());
 			}
 			chain.doFilter(request, response);
 		}
@@ -96,13 +92,21 @@ public class ComponentCacheFilter implements Filter {
 			logger.info("Filtering path={}, resourceType={}", resource.getPath(), resource.getResourceType());
 		}
 
-		byte[] result = cacheHolder.putOrGet(request, cacheConfiguration,
-				new ResponseCallback(chain, request, (HttpServletResponse) response)).toByteArray();
-		response.getWriter().write(new String(result, response.getCharacterEncoding()));
+		CacheEntity cacheEntity = cacheHolder.putOrGet(request, cacheConfiguration,
+				new ResponseCallback(chain, request, (HttpServletResponse) response));
+
+		prepareResponse(response, cacheEntity);
+	}
+
+	private void prepareResponse(ServletResponse response, CacheEntity entity) throws IOException {
+		response.setContentType(entity.getContentType());
+		response.getWriter().write(new String(entity.getContent().toByteArray(), response.getCharacterEncoding()));
 	}
 
 	@Override
 	public void destroy() {
-		logger.info("Destroying Sling Caching Filter...");
+		if (logger.isInfoEnabled()) {
+			logger.info("Destroying Sling Caching Filter...");
+		}
 	}
 }

@@ -1,39 +1,29 @@
 package com.cognifide.cq.cache.cache;
 
 import com.cognifide.cq.cache.cache.callback.MissingCacheEntryCallback;
-import com.cognifide.cq.cache.cache.listener.CacheGuardListenerConfiguration;
 import com.cognifide.cq.cache.definition.CacheConfigurationEntry;
 import com.cognifide.cq.cache.definition.ResourceTypeCacheDefinition;
 import com.cognifide.cq.cache.expiry.collection.GuardCollectionWatcher;
 import com.cognifide.cq.cache.expiry.guard.ExpiryGuard;
-import com.cognifide.cq.cache.filter.osgi.CacheConfiguration;
 import com.cognifide.cq.cache.filter.osgi.CacheManagerProvider;
 import com.cognifide.cq.cache.model.ResourceTypeCacheConfiguration;
 import com.cognifide.cq.cache.model.key.CacheKeyGenerator;
 import com.cognifide.cq.cache.model.key.CacheKeyGeneratorImpl;
-import java.io.ByteArrayOutputStream;
+import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterators;
 import java.io.IOException;
 import java.net.URI;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.TimeUnit;
 import javax.cache.Cache;
 import javax.cache.CacheManager;
-import javax.cache.configuration.Factory;
-import javax.cache.configuration.FactoryBuilder;
-import javax.cache.configuration.MutableConfiguration;
-import javax.cache.expiry.Duration;
-import javax.cache.expiry.ExpiryPolicy;
-import javax.cache.expiry.TouchedExpiryPolicy;
 import javax.servlet.ServletException;
-import org.apache.commons.lang.StringUtils;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
+import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.ReferenceCardinality;
 import org.apache.felix.scr.annotations.ReferencePolicy;
@@ -50,187 +40,155 @@ public class JCacheHolder implements CacheHolder {
 	private static final Logger logger = LoggerFactory.getLogger(JCacheHolder.class);
 
 	@Reference
-	private CacheConfiguration cacheConfiguration;
+	private CacheManagerProvider cacheManagerProvider;
 
 	@Reference
-	private CacheManagerProvider cacheManagerProvider;
+	private CacheOperations cacheOperations;
+
+	@Reference
+	private GuardCollectionWatcher guardCollectionWatcher;
 
 	@Reference(
 			referenceInterface = ResourceTypeCacheDefinition.class,
 			policy = ReferencePolicy.DYNAMIC,
 			cardinality = ReferenceCardinality.MANDATORY_MULTIPLE,
+			updated = "updateResourceTypeCacheDefinition",
 			strategy = ReferenceStrategy.EVENT)
 	private final ConcurrentMap<String, ResourceTypeCacheDefinition> resourceTypeCacheDefinitions
 			= new ConcurrentHashMap<String, ResourceTypeCacheDefinition>(8);
 
-	@Reference
-	private GuardCollectionWatcher guardCollectionWatcher;
-
 	private CacheKeyGenerator cacheKeyGenerator;
 
 	@Activate
-	public void activate() {
+	protected void activate() {
 		cacheKeyGenerator = new CacheKeyGeneratorImpl();
 	}
 
-	public synchronized void bindResourceTypeCacheDefinition(ResourceTypeCacheDefinition resourceTypeCacheDefinition) {
+	protected synchronized void bindResourceTypeCacheDefinition(ResourceTypeCacheDefinition resourceTypeCacheDefinition) {
 		if (resourceTypeCacheDefinition.isValid() && resourceTypeCacheDefinition.isEnabled()) {
-			resourceTypeCacheDefinitions.put(resourceTypeCacheDefinition.getResourceType(), resourceTypeCacheDefinition);
-			createOrRecreateCache(resourceTypeCacheDefinition);
+			String resourceType = resourceTypeCacheDefinition.getResourceType();
+			if (!resourceTypeCacheDefinitions.containsKey(resourceType)) {
+				resourceTypeCacheDefinitions.put(resourceType, resourceTypeCacheDefinition);
+				createOrRecreateCache(resourceTypeCacheDefinition);
+			} else {
+				logger.warn("Resource type cache definition was already defined for {}", resourceType);
+			}
 		}
 	}
 
-	private Cache<String, ByteArrayOutputStream> createOrRecreateCache(CacheConfigurationEntry cacheConfigurationEntry)
+	private Optional<Cache<String, CacheEntity>> createOrRecreateCache(CacheConfigurationEntry cacheConfigurationEntry)
 			throws IllegalArgumentException {
 		final String cacheName = cacheConfigurationEntry.getResourceType();
-
-		if (null != findCacheFor(cacheName)) {
-			deleteCache(cacheName);
-		}
-
-		return createCache(cacheName, cacheConfigurationEntry);
+		cacheOperations.delete(cacheName);
+		return cacheOperations.create(cacheConfigurationEntry);
 	}
 
-	private void deleteCache(String cacheName) {
-		CacheManager cacheManager = cacheManagerProvider.getCacheManger();
-		if (canWorkWithCacheManager(cacheName, cacheManager)) {
-			logger.info("Destroying {} cache.", cacheName);
-			cacheManager.destroyCache(cacheName);
-			logger.debug("Cache {} was destroyed", cacheName);
+	protected synchronized void updateResourceTypeCacheDefinition(ResourceTypeCacheDefinition resourceTypeCacheDefinition) {
+		if (resourceTypeCacheDefinition.isValid()) {
+			if (resourceTypeCacheDefinition.isEnabled()) {
+				resourceTypeCacheDefinitions.put(resourceTypeCacheDefinition.getResourceType(), resourceTypeCacheDefinition);
+				createOrRecreateCache(resourceTypeCacheDefinition);
+			} else {
+				unbindResourceTypeCacheDefinition(resourceTypeCacheDefinition);
+			}
 		}
 	}
 
-	private boolean canWorkWithCacheManager(String cacheName, CacheManager cacheManager) {
-		return StringUtils.isNotEmpty(cacheName) && !cacheManager.isClosed();
-	}
-
-	private Cache<String, ByteArrayOutputStream> createCache(
-			String cacheName, CacheConfigurationEntry cacheConfigurationEntry) {
-		Cache<String, ByteArrayOutputStream> cache = null;
-
-		CacheManager cacheManager = cacheManagerProvider.getCacheManger();
-		if (canWorkWithCacheManager(cacheName, cacheManager)) {
-			logger.info("Creating {} cache", cacheName);
-			cache = cacheManager.createCache(cacheName, buildBasicCacheConfiguration(cacheConfigurationEntry));
-			cacheManagerProvider.updateCacheConfiguration(cache);
-			logger.debug("Cache {} was created", cacheName);
-		}
-
-		return cache;
-	}
-
-	private Cache<String, ByteArrayOutputStream> findCacheFor(String cacheName) {
-		CacheManager cacheManager = cacheManagerProvider.getCacheManger();
-		return canWorkWithCacheManager(cacheName, cacheManager)
-				? cacheManager.getCache(cacheName, String.class, ByteArrayOutputStream.class) : null;
-	}
-
-	private MutableConfiguration<String, ByteArrayOutputStream>
-			buildBasicCacheConfiguration(CacheConfigurationEntry cacheConfigurationEntry) {
-		return new MutableConfiguration<String, ByteArrayOutputStream>()
-				.setTypes(String.class, ByteArrayOutputStream.class)
-				.setStoreByValue(false)
-				.setStatisticsEnabled(true)
-				.setExpiryPolicyFactory(createExpiryPolicyFactory(cacheConfigurationEntry))
-				.addCacheEntryListenerConfiguration(new CacheGuardListenerConfiguration(guardCollectionWatcher));
-	}
-
-	private Factory<? extends ExpiryPolicy> createExpiryPolicyFactory(
-			CacheConfigurationEntry cacheConfigurationEntry) {
-		int validityTimeInSeconds = null == cacheConfigurationEntry.getValidityTimeInSeconds()
-				? cacheConfiguration.getValidityTimeInSeconds() : cacheConfigurationEntry.getValidityTimeInSeconds();
-		Duration duration = new Duration(TimeUnit.SECONDS, validityTimeInSeconds);
-		return new FactoryBuilder.SingletonFactory<ExpiryPolicy>(new TouchedExpiryPolicy(duration));
-	}
-
-	public synchronized void unbindResourceTypeCacheDefinition(ResourceTypeCacheDefinition resourceTypeCacheDefinition) {
+	protected synchronized void unbindResourceTypeCacheDefinition(ResourceTypeCacheDefinition resourceTypeCacheDefinition) {
 		if (resourceTypeCacheDefinition.isValid()) {
 			String cacheName = resourceTypeCacheDefinition.getResourceType();
 			resourceTypeCacheDefinitions.remove(cacheName);
-			deleteCache(cacheName);
+			cacheOperations.delete(cacheName);
 		}
 	}
 
 	@Override
-	public URI getCacheManagerURI() {
-		return cacheManagerProvider.getCacheManger().getURI();
+	public Optional<URI> getCacheManagerURI() {
+		CacheManager cacheManager = cacheManagerProvider.getCacheManager();
+		return cacheManager.isClosed() ? Optional.<URI>absent() : Optional.of(cacheManager.getURI());
+
 	}
 
 	@Override
 	public Iterable<String> getCacheNames() {
-		CacheManager cacheManager = cacheManagerProvider.getCacheManger();
+		CacheManager cacheManager = cacheManagerProvider.getCacheManager();
 		return cacheManager.isClosed() ? Collections.<String>emptySet() : cacheManager.getCacheNames();
 	}
 
 	@Override
 	public Collection<String> getKeysFor(String cacheName) {
-		Set<String> keys = Collections.emptySet();
-
-		Cache<String, ByteArrayOutputStream> cache = findCacheFor(cacheName);
-		if (cacheIsValid(cache)) {
-			keys = new HashSet<String>();
-			Iterator<Cache.Entry<String, ByteArrayOutputStream>> iterator = cache.iterator();
-			while (iterator.hasNext()) {
-				keys.add(iterator.next().getKey());
-			}
-		}
-
-		return Collections.unmodifiableSet(keys);
+		Optional<Cache<String, CacheEntity>> cache = cacheOperations.findFor(cacheName);
+		return isValid(cache)
+				? ImmutableSet.copyOf(Iterators.transform(cache.get().iterator(), new EntryToKeyTransform()))
+				: ImmutableSet.<String>of();
 	}
 
-	private boolean cacheIsValid(Cache<String, ByteArrayOutputStream> cache) {
-		return null != cache && !cache.isClosed();
+	private boolean isValid(Optional<Cache<String, CacheEntity>> cache) {
+		return cache.isPresent() && !cache.get().isClosed();
 	}
 
 	@Override
-	public ByteArrayOutputStream putOrGet(SlingHttpServletRequest request,
+	public CacheEntity putOrGet(SlingHttpServletRequest request,
 			ResourceTypeCacheConfiguration resourceTypeCacheConfiguration, MissingCacheEntryCallback callback)
 			throws IOException, ServletException {
-		ByteArrayOutputStream result = null;
+		CacheEntity result = null;
 
-		Cache<String, ByteArrayOutputStream> cache = findOrCreateCacheFrom(resourceTypeCacheConfiguration);
-
-		final String key = cacheKeyGenerator.generateKey(request, resourceTypeCacheConfiguration);
-		if (null != cache) {
-			result = cache.get(key);
-		}
-
-		if (null == result) {
-			logger.info("Key {} not in cache, generating content...", key);
-			result = callback.doCallback();
-			if (null != cache) {
-				cache.put(key, result);
-				logger.debug("Key {} added to {} cache.", key, cache.getName());
+		Optional<Cache<String, CacheEntity>> cache = findOrCreateCacheFrom(resourceTypeCacheConfiguration);
+		if (cache.isPresent()) {
+			final String key = cacheKeyGenerator.generateKey(request, resourceTypeCacheConfiguration);
+			result = cache.get().get(key);
+			if (null == result) {
+				if (logger.isInfoEnabled()) {
+					logger.info("Key {} not in cache, generating content...", key);
+				}
+				result = callback.generateCacheEntity();
+				cache.get().put(key, result);
+				if (logger.isDebugEnabled()) {
+					logger.debug("Key {} added to {} cache.", key, cache.get().getName());
+				}
 				guardCollectionWatcher.addGuard(
 						ExpiryGuard.createDeletingExpiryGuard(request, this, resourceTypeCacheConfiguration, key));
+			}
+		} else {
+			logger.error("Resource with resource type {} does not have any valid configuration anymore. Generating content.",
+					request.getResource().getResourceType());
+			result = callback.generateCacheEntity();
+		}
+
+		return result;
+	}
+
+	private Optional<Cache<String, CacheEntity>> findOrCreateCacheFrom(
+			CacheConfigurationEntry cacheConfigurationEntry) {
+		final String cacheName = cacheConfigurationEntry.getResourceType();
+
+		Optional<Cache<String, CacheEntity>> result = cacheOperations.findFor(cacheName);
+		if (!isValid(result)) {
+			if (canCreateCache(cacheName)) {
+				logger.warn("{} cache was missing. Creating cache...", cacheName);
+				result = createOrRecreateCache(cacheConfigurationEntry);
+			} else {
+				logger.error("Resource type with {} was not defined. Cache does not exist/could not be created.", cacheName);
 			}
 		}
 
 		return result;
 	}
 
-	private Cache<String, ByteArrayOutputStream> findOrCreateCacheFrom(
-			CacheConfigurationEntry cacheConfigurationEntry) {
-		final String cacheName = cacheConfigurationEntry.getResourceType();
-
-		Cache<String, ByteArrayOutputStream> cache = findCacheFor(cacheName);
-		if (null == cache) {
-			if (resourceTypeCacheDefinitions.containsKey(cacheName)) {
-				logger.warn("{} cache was missing. Creating cache...", cacheName);
-				cache = createOrRecreateCache(cacheConfigurationEntry);
-			} else {
-				logger.error("Resource type with {} was not defined. Cache could not be created.", cacheName);
-			}
-		}
-
-		return cache;
+	private boolean canCreateCache(String cacheName) {
+		return resourceTypeCacheDefinitions.containsKey(cacheName)
+				&& resourceTypeCacheDefinitions.get(cacheName).isValid()
+				&& resourceTypeCacheDefinitions.get(cacheName).isEnabled();
 	}
 
 	@Override
 	public void remove(String cacheName, String key) {
-		Cache<String, ByteArrayOutputStream> cache = findCacheFor(cacheName);
-		if (cacheIsValid(cache)) {
-			cache.remove(key);
+		Optional<Cache<String, CacheEntity>> cache = cacheOperations.findFor(cacheName);
+		if (isValid(cache)) {
+			cache.get().remove(key);
+			if (logger.isInfoEnabled()) {
+				logger.info("Element {} was removed from {} cache.", key, cacheName);
+			}
 		} else {
 			logger.warn("Could not remove element {}. Cache {} does not exist or was closed.", key, cacheName);
 		}
@@ -238,11 +196,25 @@ public class JCacheHolder implements CacheHolder {
 
 	@Override
 	public void clear(String cacheName) {
-		Cache<String, ByteArrayOutputStream> cache = findCacheFor(cacheName);
-		if (cacheIsValid(cache)) {
-			cache.clear();
+		Optional<Cache<String, CacheEntity>> cache = cacheOperations.findFor(cacheName);
+		if (isValid(cache)) {
+			cache.get().clear();
+			if (logger.isInfoEnabled()) {
+				logger.info("Cache {} was cleared.", cacheName);
+			}
 		} else {
 			logger.warn("Could not clear cache. Cache {} does not exist or was closed.", cacheName);
+		}
+	}
+
+	@Deactivate
+	protected void deactivate() {
+		CacheManager cacheManager = cacheManagerProvider.getCacheManager();
+		if (!cacheManager.isClosed()) {
+			for (String cacheName : cacheManager.getCacheNames()) {
+				guardCollectionWatcher.removeGuards(cacheName);
+				cacheManager.destroyCache(cacheName);
+			}
 		}
 	}
 }

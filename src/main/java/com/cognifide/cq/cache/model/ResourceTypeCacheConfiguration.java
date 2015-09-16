@@ -2,15 +2,15 @@ package com.cognifide.cq.cache.model;
 
 import com.cognifide.cq.cache.definition.CacheConfigurationEntryImpl;
 import com.cognifide.cq.cache.definition.ResourceTypeCacheDefinition;
-import com.cognifide.cq.cache.filter.osgi.CacheConfiguration;
 import com.cognifide.cq.cache.model.alias.PathAliasStore;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Sets;
+import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Set;
 import java.util.regex.Pattern;
 import org.apache.commons.lang.StringUtils;
 import org.apache.sling.api.SlingHttpServletRequest;
-import org.apache.sling.commons.osgi.OsgiUtil;
 
 /**
  * @author Bartosz Rudnicki
@@ -27,18 +27,15 @@ public class ResourceTypeCacheConfiguration extends CacheConfigurationEntryImpl 
 
 	private final Set<Pattern> invalidationPatterns;
 
-	public ResourceTypeCacheConfiguration(ResourceTypeCacheDefinition resourceTypeCacheDefinition,
-			CacheConfiguration cacheConfiguration, PathAliasStore pathAliasStore) {
-		super(resourceTypeCacheDefinition.getResourceType(),
-				OsgiUtil.toInteger(resourceTypeCacheDefinition.getValidityTimeInSeconds(), cacheConfiguration.getValidityTimeInSeconds()),
-				resourceTypeCacheDefinition.getCacheLevel());
+	public ResourceTypeCacheConfiguration(ResourceTypeCacheDefinition resourceTypeCacheDefinition, PathAliasStore pathAliasStore) {
+		super(resourceTypeCacheDefinition);
 
 		this.enabled = resourceTypeCacheDefinition.isEnabled();
 		this.resourceTypeCacheDefinition = resourceTypeCacheDefinition;
-		this.pathAliasStore = pathAliasStore;
+		this.pathAliasStore = Preconditions.checkNotNull(pathAliasStore);
 
-		this.invalidationPathPrefixes = new HashSet<String>();
-		this.invalidationPatterns = new HashSet<Pattern>();
+		this.invalidationPathPrefixes = Sets.newHashSet();
+		this.invalidationPatterns = Sets.newHashSet();
 	}
 
 	public boolean isEnabled() {
@@ -59,7 +56,7 @@ public class ResourceTypeCacheConfiguration extends CacheConfigurationEntryImpl 
 	}
 
 	void addInvalidationPathPrefix(String invalidationPathPrefix) {
-		if (StringUtils.isNotEmpty(invalidationPathPrefix)) {
+		if (StringUtils.isNotBlank(invalidationPathPrefix)) {
 			this.invalidationPathPrefixes.add(invalidationPathPrefix);
 		}
 	}
@@ -68,7 +65,7 @@ public class ResourceTypeCacheConfiguration extends CacheConfigurationEntryImpl 
 		this.invalidationPatterns.add(pattern);
 	}
 
-	void addInvalidationPatterns(Iterable<Pattern> patterns) {
-		invalidationPatterns.addAll(invalidationPatterns);
+	void addInvalidationPatterns(Collection<Pattern> patterns) {
+		invalidationPatterns.addAll(patterns);
 	}
 }
