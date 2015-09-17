@@ -2,10 +2,11 @@ package com.cognifide.cq.cache.plugins.statistics.html;
 
 import com.cognifide.cq.cache.cache.CacheHolder;
 import com.cognifide.cq.cache.expiry.collection.GuardCollectionWalker;
+import com.cognifide.cq.cache.expiry.guard.ExpiryGuard;
 import com.cognifide.cq.cache.plugins.statistics.StatisticEntry;
 import com.cognifide.cq.cache.plugins.statistics.Statistics;
 import com.cognifide.cq.cache.plugins.statistics.action.ActionCreator;
-import java.util.HashSet;
+import com.google.common.collect.Sets;
 import java.util.Set;
 import javax.management.AttributeNotFoundException;
 import javax.management.InstanceNotFoundException;
@@ -95,7 +96,9 @@ public class HtmlBuilder {
 			+ "  $(this).toggleClass(\"ui-icon-triangle-1-e ui-icon-triangle-1-s\");\n"
 			+ "});";
 
-	private static final String[] HEADERS = {"Number", "Resource type", "Entries", "Hits", "Misses", "Ratio", "Clear cache"};
+	private static final String[] CACHE_HEADERS = {"Number", "Resource type", "Entries", "Hits", "Misses", "Ratio", "Clear cache"};
+
+	private static final String[] GUARDS_HEADERS = {"Number", "Cache name", "Key"};
 
 	public static CharSequence br() {
 		return BR_TAG;
@@ -142,11 +145,17 @@ public class HtmlBuilder {
 				.append("<div class=\"table\">")
 				.append(div("ui-widget-header ui-corner-top buttonGroup", "Sling Caching Filter (Statistics)"))
 				.append("<table id=\"configTable\" class=\"tablesorter nicetable noauto ui-widget\">");
-
-		appendHeaders(markup);
-
+		appendHeaders(markup, CACHE_HEADERS);
 		appendData(markup, statisticEntries);
+		markup.append("</table>")
+				.append("</div>");
 
+		markup.append(br())
+				.append("<div class=\"table\">")
+				.append(div("ui-widget-header ui-corner-top buttonGroup", "Sling Caching Filter (Guards statistics)"))
+				.append("<table id=\"guardTable\" class=\"tablesorter nicetable noauto ui-widget\">");
+		appendHeaders(markup, GUARDS_HEADERS);
+		appendData(markup, guardCollectionWalker);
 		markup.append("</table>")
 				.append("</div>");
 
@@ -158,7 +167,7 @@ public class HtmlBuilder {
 	}
 
 	private Set<StatisticEntry> readStatisticsFromMBean(CacheHolder cacheHolder) {
-		Set<StatisticEntry> statisticEntries = new HashSet<StatisticEntry>();
+		Set<StatisticEntry> statisticEntries = Sets.newHashSet();
 
 		try {
 			for (String cacheName : cacheHolder.getCacheNames()) {
@@ -180,10 +189,10 @@ public class HtmlBuilder {
 		return statisticEntries;
 	}
 
-	private void appendHeaders(StringBuilder markup) {
+	private void appendHeaders(StringBuilder markup, String[] headers) {
 		markup.append("<thead>")
 				.append("<tr>");
-		for (String header : HEADERS) {
+		for (String header : headers) {
 			markup.append(th("ui-widget-header", header));
 		}
 		markup.append("</tr>")
@@ -211,6 +220,18 @@ public class HtmlBuilder {
 			index++;
 		}
 		markup.append("</tbody>");
+	}
+
+	private void appendData(StringBuilder markup, GuardCollectionWalker guardCollectionWalker) {
+		int index = 1;
+		for (ExpiryGuard guard : guardCollectionWalker.getGuards()) {
+			markup.append("<tr class=\"").append(index % 2 == 0 ? "even" : "odd").append(" ui-state-default\">")
+					.append(td(index))
+					.append(td(guard.getCacheName()))
+					.append(td(guard.getKey()))
+					.append("</tr>");
+			index++;
+		}
 	}
 
 	private void appendJavaScript(StringBuilder markup) {

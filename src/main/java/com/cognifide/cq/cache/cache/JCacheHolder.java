@@ -23,7 +23,6 @@ import javax.cache.CacheManager;
 import javax.servlet.ServletException;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.ReferenceCardinality;
 import org.apache.felix.scr.annotations.ReferencePolicy;
@@ -65,14 +64,11 @@ public class JCacheHolder implements CacheHolder {
 	}
 
 	protected synchronized void bindResourceTypeCacheDefinition(ResourceTypeCacheDefinition resourceTypeCacheDefinition) {
-		if (resourceTypeCacheDefinition.isValid() && resourceTypeCacheDefinition.isEnabled()) {
-			String resourceType = resourceTypeCacheDefinition.getResourceType();
-			if (!resourceTypeCacheDefinitions.containsKey(resourceType)) {
-				resourceTypeCacheDefinitions.put(resourceType, resourceTypeCacheDefinition);
-				createOrRecreateCache(resourceTypeCacheDefinition);
-			} else {
-				logger.warn("Resource type cache definition was already defined for {}", resourceType);
-			}
+		String resourceType = resourceTypeCacheDefinition.getResourceType();
+		if (!resourceTypeCacheDefinitions.containsKey(resourceType)) {
+			resourceTypeCacheDefinitions.put(resourceType, resourceTypeCacheDefinition);
+		} else {
+			logger.warn("Resource type cache definition was already defined for {}", resourceType);
 		}
 	}
 
@@ -84,22 +80,11 @@ public class JCacheHolder implements CacheHolder {
 	}
 
 	protected synchronized void updateResourceTypeCacheDefinition(ResourceTypeCacheDefinition resourceTypeCacheDefinition) {
-		if (resourceTypeCacheDefinition.isValid()) {
-			if (resourceTypeCacheDefinition.isEnabled()) {
-				resourceTypeCacheDefinitions.put(resourceTypeCacheDefinition.getResourceType(), resourceTypeCacheDefinition);
-				createOrRecreateCache(resourceTypeCacheDefinition);
-			} else {
-				unbindResourceTypeCacheDefinition(resourceTypeCacheDefinition);
-			}
-		}
+		resourceTypeCacheDefinitions.put(resourceTypeCacheDefinition.getResourceType(), resourceTypeCacheDefinition);
 	}
 
 	protected synchronized void unbindResourceTypeCacheDefinition(ResourceTypeCacheDefinition resourceTypeCacheDefinition) {
-		if (resourceTypeCacheDefinition.isValid()) {
-			String cacheName = resourceTypeCacheDefinition.getResourceType();
-			resourceTypeCacheDefinitions.remove(cacheName);
-			cacheOperations.delete(cacheName);
-		}
+		resourceTypeCacheDefinitions.remove(resourceTypeCacheDefinition.getResourceType());
 	}
 
 	@Override
@@ -204,17 +189,6 @@ public class JCacheHolder implements CacheHolder {
 			}
 		} else {
 			logger.warn("Could not clear cache. Cache {} does not exist or was closed.", cacheName);
-		}
-	}
-
-	@Deactivate
-	protected void deactivate() {
-		CacheManager cacheManager = cacheManagerProvider.getCacheManager();
-		if (!cacheManager.isClosed()) {
-			for (String cacheName : cacheManager.getCacheNames()) {
-				guardCollectionWatcher.removeGuards(cacheName);
-				cacheManager.destroyCache(cacheName);
-			}
 		}
 	}
 }

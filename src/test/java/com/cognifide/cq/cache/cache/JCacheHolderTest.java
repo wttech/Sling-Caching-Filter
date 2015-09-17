@@ -28,7 +28,6 @@ import org.mockito.InjectMocks;
 import static org.mockito.Matchers.isA;
 import org.mockito.Mock;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
@@ -70,61 +69,6 @@ public class JCacheHolderTest {
 	@Rule
 	public MockitoRule mockitoRule = MockitoJUnit.rule();
 
-	@Test
-	public void shouldNotBindInvalidResourceTypeCacheDefinition() {
-		//given
-		ResourceTypeCacheDefinition resourceTypeCacheDefinition = createInvalidResourceTypeCacheDefinition();
-
-		//when
-		testedObject.bindResourceTypeCacheDefinition(resourceTypeCacheDefinition);
-
-		//then
-		verify(resourceTypeCacheDefinition).isValid();
-		verifyNoMoreInteractions(resourceTypeCacheDefinition, cacheOperations);
-	}
-
-	private ResourceTypeCacheDefinition createInvalidResourceTypeCacheDefinition() {
-		ResourceTypeCacheDefinition resourceTypeCacheDefinition = mock(ResourceTypeCacheDefinition.class);
-		when(resourceTypeCacheDefinition.isValid()).thenReturn(false);
-		return resourceTypeCacheDefinition;
-	}
-
-	@Test
-	public void shouldNotBindNotEnabledResourceTypeCacheDefinition() {
-		//given
-		ResourceTypeCacheDefinition resourceTypeCacheDefinition = createNotEnabledResourceTypeCacheDefinition();
-
-		//when
-		testedObject.bindResourceTypeCacheDefinition(resourceTypeCacheDefinition);
-
-		//then
-		verify(resourceTypeCacheDefinition).isValid();
-		verify(resourceTypeCacheDefinition).isEnabled();
-		verifyNoMoreInteractions(resourceTypeCacheDefinition, cacheOperations);
-	}
-
-	private ResourceTypeCacheDefinition createNotEnabledResourceTypeCacheDefinition() {
-		ResourceTypeCacheDefinition resourceTypeCacheDefinition = mock(ResourceTypeCacheDefinition.class);
-		when(resourceTypeCacheDefinition.isValid()).thenReturn(true);
-		when(resourceTypeCacheDefinition.isEnabled()).thenReturn(false);
-		when(resourceTypeCacheDefinition.getResourceType()).thenReturn(RESOURCE_TYPE);
-		return resourceTypeCacheDefinition;
-	}
-
-	@Test
-	public void shouldNotBindWhenResourceTypeCacheDefinitionWithSameResourceTypeWasAlreadyBinded() {
-		//given
-		ResourceTypeCacheDefinition resourceTypeCacheDefinition1 = createValidAndEnabledResourceTypeCacheDefinition();
-		testedObject.bindResourceTypeCacheDefinition(resourceTypeCacheDefinition1);
-
-		//when
-		ResourceTypeCacheDefinition resourceTypeCacheDefinition2 = createValidAndEnabledResourceTypeCacheDefinition();
-		testedObject.bindResourceTypeCacheDefinition(resourceTypeCacheDefinition2);
-
-		//then
-		verifyCacheCreated(resourceTypeCacheDefinition1);
-	}
-
 	private ResourceTypeCacheDefinition createValidAndEnabledResourceTypeCacheDefinition() {
 		ResourceTypeCacheDefinition resourceTypeCacheDefinition = mock(ResourceTypeCacheDefinition.class);
 
@@ -133,86 +77,6 @@ public class JCacheHolderTest {
 		when(resourceTypeCacheDefinition.getResourceType()).thenReturn(RESOURCE_TYPE);
 
 		return resourceTypeCacheDefinition;
-	}
-
-	@Test
-	public void shouldBindValidAndEnabledResourceTypeCacheDefinition() {
-		//given
-		ResourceTypeCacheDefinition resourceTypeCacheDefinition = createValidAndEnabledResourceTypeCacheDefinition();
-
-		//when
-		testedObject.bindResourceTypeCacheDefinition(resourceTypeCacheDefinition);
-
-		//then
-		verifyCacheCreated(resourceTypeCacheDefinition);
-	}
-
-	private void verifyCacheCreated(ResourceTypeCacheDefinition resourceTypeCacheDefinition) {
-		verify(cacheOperations).delete(RESOURCE_TYPE);
-		verify(cacheOperations).create(resourceTypeCacheDefinition);
-		verifyNoMoreInteractions(cacheOperations);
-	}
-
-	@Test
-	public void shouldNotUpdateInvalidResourceTypeCacheDefinition() {
-		//given
-		ResourceTypeCacheDefinition resourceTypeCacheDefinition = createInvalidResourceTypeCacheDefinition();
-
-		//when
-		testedObject.updateResourceTypeCacheDefinition(resourceTypeCacheDefinition);
-
-		//then
-		verify(resourceTypeCacheDefinition).isValid();
-		verifyNoMoreInteractions(resourceTypeCacheDefinition, cacheOperations);
-	}
-
-	@Test
-	public void shouldUpdateAndUnbindValidButNotEnabledResourceTypeCacheDefinition() {
-		//given
-		ResourceTypeCacheDefinition resourceTypeCacheDefinition = createNotEnabledResourceTypeCacheDefinition();
-
-		//when
-		testedObject.updateResourceTypeCacheDefinition(resourceTypeCacheDefinition);
-
-		//then
-		verify(cacheOperations).delete(RESOURCE_TYPE);
-	}
-
-	@Test
-	public void shouldUpdateValidAndEnabledResourceTypeCacheDefinition() {
-		//given
-		ResourceTypeCacheDefinition resourceTypeCacheDefinition = createValidAndEnabledResourceTypeCacheDefinition();
-
-		//when
-		testedObject.updateResourceTypeCacheDefinition(resourceTypeCacheDefinition);
-
-		//then
-		verifyCacheCreated(resourceTypeCacheDefinition);
-	}
-
-	@Test
-	public void shouldNotUnbindInvalidResourceTypeCacheDefinition() {
-		//given
-		ResourceTypeCacheDefinition resourceTypeCacheDefinition = createInvalidResourceTypeCacheDefinition();
-
-		//when
-		testedObject.unbindResourceTypeCacheDefinition(resourceTypeCacheDefinition);
-
-		//then
-		verify(resourceTypeCacheDefinition).isValid();
-		verifyNoMoreInteractions(resourceTypeCacheDefinition, cacheOperations);
-	}
-
-	@Test
-	public void shouldUnbindResourceTypeCacheDefinition() {
-		//given
-		ResourceTypeCacheDefinition resourceTypeCacheDefinition = createValidAndEnabledResourceTypeCacheDefinition();
-
-		//when
-		testedObject.unbindResourceTypeCacheDefinition(resourceTypeCacheDefinition);
-
-		//then
-		verify(cacheOperations).delete(RESOURCE_TYPE);
 	}
 
 	@Test
@@ -373,10 +237,8 @@ public class JCacheHolderTest {
 		assertThat(actual).isEqualTo(cacheEntity);
 		verify(cache).isClosed();
 		verify(cacheOperations).findFor(RESOURCE_TYPE);
-		// first time - bindResourceTypeCacheDefinition, second time - findOrCreateCacheFrom
-		verify(cacheOperations, times(2)).delete(RESOURCE_TYPE);
-		// first time - bindResourceTypeCacheDefinition, second time - findOrCreateCacheFrom
-		verify(cacheOperations, times(2)).create(isA(CacheConfigurationEntry.class));
+		verify(cacheOperations).delete(RESOURCE_TYPE);
+		verify(cacheOperations).create(isA(CacheConfigurationEntry.class));
 		verify(newCache).get(CACHE_KEY);
 		verify(newCache).put(CACHE_KEY, cacheEntity);
 		verifyNoMoreInteractions(cache, cacheOperations, newCache);
@@ -521,40 +383,6 @@ public class JCacheHolderTest {
 		verify(cache).isClosed();
 		verify(cache).clear();
 		verifyNoMoreInteractions(cacheOperations, cache);
-	}
-
-	@Test
-	public void shouldDoNothingWhenCacheManagerIsClosedDuringDeactivation() {
-		//given
-		setUpClosedCacheManager();
-
-		//when
-		testedObject.deactivate();
-
-		//then
-		verify(cacheManagerProvider).getCacheManager();
-		verify(cacheManager).isClosed();
-		verifyNoMoreInteractions(cacheManagerProvider, cacheManager, guardCollectionWatcher);
-
-	}
-
-	@Test
-	public void shouldRemoveGuardsAndDestroyCacheDuringDeactivation() {
-		//given
-		setUpOpenCacheManager();
-		when(cacheManager.getCacheNames()).thenReturn(Arrays.asList(RESOURCE_TYPE));
-
-		//when
-		testedObject.deactivate();
-
-		//then
-		verify(cacheManagerProvider).getCacheManager();
-		verify(cacheManager).isClosed();
-		verify(cacheManager).getCacheNames();
-		verify(guardCollectionWatcher).removeGuards(RESOURCE_TYPE);
-		verify(cacheManager).destroyCache(RESOURCE_TYPE);
-		verifyNoMoreInteractions(cacheManagerProvider, cacheManager, guardCollectionWatcher);
-
 	}
 
 }

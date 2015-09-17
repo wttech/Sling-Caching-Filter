@@ -1,19 +1,27 @@
 package com.cognifide.cq.cache.definition.osgi;
 
+import com.cognifide.cq.cache.cache.CacheOperations;
 import com.cognifide.cq.cache.definition.ResourceTypeCacheDefinition;
+import com.cognifide.cq.cache.expiry.collection.GuardCollectionWatcher;
 import com.cognifide.cq.cache.filter.osgi.CacheConfiguration;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 import java.util.Arrays;
+import java.util.Set;
 import org.apache.commons.lang.StringUtils;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
+import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Modified;
 import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.PropertyUnbounded;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.Service;
+import org.osgi.framework.InvalidSyntaxException;
+import org.osgi.framework.ServiceReference;
 import org.osgi.service.component.ComponentContext;
+import org.osgi.service.component.ComponentException;
 
 @Component(
 		configurationFactory = true,
@@ -83,6 +91,12 @@ public class OsgiResourceTypeCacheDefinition implements ResourceTypeCacheDefinit
 	@Reference
 	private CacheConfiguration cacheConfiguration;
 
+	@Reference
+	private CacheOperations cacheOperations;
+
+	@Reference
+	private GuardCollectionWatcher guardCollectionWatcher;
+
 	private boolean active;
 
 	private String resourceType;
@@ -100,8 +114,7 @@ public class OsgiResourceTypeCacheDefinition implements ResourceTypeCacheDefinit
 	private Iterable<String> invalidateOnPaths;
 
 	@Activate
-	@Modified
-	protected void activate(ComponentContext componentContext) {
+	protected void activate(ComponentContext componentContext) throws InvalidSyntaxException {
 		active = OsgiConfigurationHelper.getBooleanValueFrom(ACTIVE_PROPERTY, componentContext);
 		resourceType = OsgiConfigurationHelper.getStringValueFrom(RESOURCE_TYPE_PROPERTY, componentContext);
 		validityTime = OsgiConfigurationHelper.getIntegerValueFrom(VALIDITY_TIME_PROPERTY, componentContext);
@@ -110,6 +123,32 @@ public class OsgiResourceTypeCacheDefinition implements ResourceTypeCacheDefinit
 		invalidateOnContainingPage = OsgiConfigurationHelper.getBooleanValueFrom(INVALIDATE_ON_CONTAINING_PAGE_PROPERTY, componentContext);
 		invalidateOnReferencedFields = transformAndClean(OsgiConfigurationHelper.getStringArrayValuesFrom(INVALIDATE_ON_REFERENCED_FIELDS_PROPERTY, componentContext));
 		invalidateOnPaths = transformAndClean(OsgiConfigurationHelper.getStringArrayValuesFrom(INVALIDATE_ON_PATHS_PROPERTY, componentContext));
+
+		if (isValid()) {
+			comapreConfigurationWithOtherServices(componentContext);
+			if (isEnabled()) {
+				cacheOperations.create(this);
+			}
+		}
+	}
+
+	private void comapreConfigurationWithOtherServices(ComponentContext componentContext) throws InvalidSyntaxException {
+		ServiceReference[] serviceReferences = componentContext.getBundleContext().getAllServiceReferences("com.cognifide.cq.cache.definition.ResourceTypeCacheDefinition", null);
+		Set<String> resourceTypes = Sets.newHashSet();
+		for (ServiceReference serviceReference : serviceReferences) {
+			String serviceResourceType = (String) serviceReference.getProperty(RESOURCE_TYPE_PROPERTY);
+			if (resourceTypes.contains(serviceResourceType) && StringUtils.equals(resourceType, serviceResourceType)) {
+				throw new ComponentException("There cannot be two definitions with the same resource type " + serviceResourceType);
+			} else {
+				resourceTypes.add(serviceResourceType);
+			}
+		}
+	}
+
+	@Modified
+	protected void modified(ComponentContext componentContext) throws InvalidSyntaxException {
+		deactivate(componentContext);
+		activate(componentContext);
 	}
 
 	private Iterable<String> transformAndClean(String[] array) {
@@ -159,6 +198,14 @@ public class OsgiResourceTypeCacheDefinition implements ResourceTypeCacheDefinit
 	@Override
 	public boolean isValid() {
 		return StringUtils.isNotEmpty(resourceType);
+	}
+
+	@Deactivate
+	protected void deactivate(ComponentContext componentContext) {
+		if (isValid()) {
+			guardCollectionWatcher.removeGuards(resourceType);
+			cacheOperations.delete(resourceType);
+		}
 	}
 
 }
