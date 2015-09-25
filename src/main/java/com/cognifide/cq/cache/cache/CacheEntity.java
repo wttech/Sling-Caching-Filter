@@ -18,4 +18,10 @@ public interface CacheEntity {
 	 * @return content
 	 */
 	ByteArrayOutputStream getContent();
+
+	/**
+	 *
+	 * @return size of stored entity in bytes
+	 */
+	long sizeInBytes();
 }

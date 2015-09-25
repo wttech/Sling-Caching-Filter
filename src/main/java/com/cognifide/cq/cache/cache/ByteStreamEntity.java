@@ -24,4 +24,9 @@ public class ByteStreamEntity implements CacheEntity {
 		return stream;
 	}
 
+	@Override
+	public long sizeInBytes() {
+		return stream.size();
+	}
+
 }

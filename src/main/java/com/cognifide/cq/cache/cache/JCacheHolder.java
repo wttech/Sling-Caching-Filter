@@ -14,8 +14,9 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterators;
 import java.io.IOException;
 import java.net.URI;
-import java.util.Collection;
 import java.util.Collections;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import javax.cache.Cache;
@@ -101,15 +102,22 @@ public class JCacheHolder implements CacheHolder {
 	}
 
 	@Override
-	public Collection<String> getKeysFor(String cacheName) {
+	public Set<String> getKeysFor(String cacheName) {
 		Optional<Cache<String, CacheEntity>> cache = cacheOperations.findFor(cacheName);
 		return isValid(cache)
 				? ImmutableSet.copyOf(Iterators.transform(cache.get().iterator(), new EntryToKeyTransform()))
-				: ImmutableSet.<String>of();
+				: Collections.<String>emptySet();
 	}
 
 	private boolean isValid(Optional<Cache<String, CacheEntity>> cache) {
 		return cache.isPresent() && !cache.get().isClosed();
+	}
+
+	@Override
+	public Map<String, CacheEntity> getValuesFor(String cacheName) {
+		Optional<Cache<String, CacheEntity>> cache = cacheOperations.findFor(cacheName);
+		return isValid(cache) ? cache.get().getAll(getKeysFor(cacheName))
+				: Collections.<String, CacheEntity>emptyMap();
 	}
 
 	@Override
@@ -170,6 +178,7 @@ public class JCacheHolder implements CacheHolder {
 	public void remove(String cacheName, String key) {
 		Optional<Cache<String, CacheEntity>> cache = cacheOperations.findFor(cacheName);
 		if (isValid(cache)) {
+			guardCollectionWatcher.removeGuard(cacheName, key);
 			cache.get().remove(key);
 			if (logger.isInfoEnabled()) {
 				logger.info("Element {} was removed from {} cache.", key, cacheName);
@@ -183,6 +192,7 @@ public class JCacheHolder implements CacheHolder {
 	public void clear(String cacheName) {
 		Optional<Cache<String, CacheEntity>> cache = cacheOperations.findFor(cacheName);
 		if (isValid(cache)) {
+			guardCollectionWatcher.removeGuards(cacheName);
 			cache.get().clear();
 			if (logger.isInfoEnabled()) {
 				logger.info("Cache {} was cleared.", cacheName);

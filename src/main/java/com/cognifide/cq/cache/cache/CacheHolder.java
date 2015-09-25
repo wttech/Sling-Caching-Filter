@@ -5,7 +5,8 @@ import com.cognifide.cq.cache.model.ResourceTypeCacheConfiguration;
 import com.google.common.base.Optional;
 import java.io.IOException;
 import java.net.URI;
-import java.util.Collection;
+import java.util.Map;
+import java.util.Set;
 import javax.servlet.ServletException;
 import org.apache.sling.api.SlingHttpServletRequest;
 
@@ -28,9 +29,17 @@ public interface CacheHolder {
 	 * Collects all keys for given cache
 	 *
 	 * @param cacheName
-	 * @return collections of keys
+	 * @return collection of keys
 	 */
-	Collection<String> getKeysFor(String cacheName);
+	Set<String> getKeysFor(String cacheName);
+
+	/**
+	 * Collects all values for given cache and keys
+	 *
+	 * @param cacheName
+	 * @return collection of key value pairs
+	 */
+	Map<String, CacheEntity> getValuesFor(String cacheName);
 
 	/**
 	 * Gets element from cache. Cache and key are generated based on current resource and resource type. If element does

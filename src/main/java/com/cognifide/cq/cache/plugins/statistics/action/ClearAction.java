@@ -1,7 +1,7 @@
 package com.cognifide.cq.cache.plugins.statistics.action;
 
 import com.cognifide.cq.cache.cache.CacheHolder;
-import com.cognifide.cq.cache.plugins.statistics.Statistics;
+import com.cognifide.cq.cache.plugins.statistics.StatisticsConstants;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.lang.StringUtils;
@@ -26,14 +26,14 @@ public class ClearAction implements StatisticsAction {
 
 	@Override
 	public void exectue() {
-		String cacheName = request.getParameter(Statistics.CACHE_NAME_PARAMETER);
+		String cacheName = request.getParameter(StatisticsConstants.CACHE_NAME_PARAMETER);
 		if (StringUtils.isNotEmpty(cacheName)) {
 			if (logger.isInfoEnabled()) {
 				logger.info("Cache {} will be cleared", cacheName);
 			}
 			cacheHolder.clear(cacheName);
 		} else {
-			logger.error("Error while reciving request. No {} parameter.", Statistics.CACHE_NAME_PARAMETER);
+			logger.error("Error while reading request. No {} parameter.", StatisticsConstants.CACHE_NAME_PARAMETER);
 			response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
 		}
 	}

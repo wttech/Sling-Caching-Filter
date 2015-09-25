@@ -3,8 +3,10 @@ package com.cognifide.cq.cache.plugins.statistics;
 import com.cognifide.cq.cache.cache.CacheHolder;
 import com.cognifide.cq.cache.expiry.collection.GuardCollectionWalker;
 import com.cognifide.cq.cache.plugins.statistics.action.ActionCreator;
-import com.cognifide.cq.cache.plugins.statistics.html.HtmlBuilder;
+import com.cognifide.cq.cache.plugins.statistics.html.HtmlStatisticsBuilder;
+import com.google.common.base.Charsets;
 import com.google.common.base.Optional;
+import com.google.common.net.MediaType;
 import java.io.IOException;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
@@ -30,8 +32,6 @@ public class Statistics extends HttpServlet {
 
 	private static final Logger logger = LoggerFactory.getLogger(Statistics.class);
 
-	public static final String CACHE_NAME_PARAMETER = "cacheName";
-
 	@Reference
 	private CacheHolder cacheHolder;
 
@@ -39,8 +39,10 @@ public class Statistics extends HttpServlet {
 	private GuardCollectionWalker guardCollectionWalker;
 
 	@Override
-	protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-		resp.getWriter().write(new HtmlBuilder().build(cacheHolder, guardCollectionWalker));
+	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+		response.getWriter().write(new HtmlStatisticsBuilder().build(cacheHolder, guardCollectionWalker));
+		response.setContentType(MediaType.HTML_UTF_8.toString());
+		response.setCharacterEncoding(Charsets.UTF_8.toString());
 	}
 
 	@Override

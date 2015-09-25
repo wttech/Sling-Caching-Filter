@@ -1,6 +1,7 @@
 package com.cognifide.cq.cache.plugins.statistics.action;
 
 import com.cognifide.cq.cache.cache.CacheHolder;
+import com.cognifide.cq.cache.plugins.statistics.StatisticsConstants;
 import com.google.common.base.Optional;
 import javax.servlet.ServletRequest;
 import javax.servlet.http.HttpServletRequest;
@@ -8,22 +9,20 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.lang.StringUtils;
 
 public enum ActionCreator {
-	DELETE("delete") {
+	DELETE(StatisticsConstants.DELETE_ACTION) {
 
 		@Override
 		public StatisticsAction create(HttpServletRequest request, HttpServletResponse response, CacheHolder cacheHolder) {
 			return new ClearAction(request, response, cacheHolder);
 		}
 	},
-	SHOW_KEYS("showKeys") {
+	SHOW_KEYS(StatisticsConstants.SHOW_DETAILS_ACTION) {
 
 		@Override
 		public StatisticsAction create(HttpServletRequest request, HttpServletResponse response, CacheHolder cacheHolder) {
-			return new ShowKeysAction(request, response, cacheHolder);
+			return new ShowDetailsAction(request, response, cacheHolder);
 		}
 	};
-
-	public static final String ACTION_PARAMETER = "action";
 
 	private final String parameter;
 
@@ -39,7 +38,7 @@ public enum ActionCreator {
 
 	public static Optional<ActionCreator> from(ServletRequest request) {
 		Optional<ActionCreator> result = Optional.absent();
-		String actionParameter = request.getParameter(ACTION_PARAMETER);
+		String actionParameter = request.getParameter(StatisticsConstants.ACTION_PARAMETER);
 		if (StringUtils.isNotBlank(actionParameter)) {
 			for (ActionCreator action : ActionCreator.values()) {
 				if (action.getParameter().equalsIgnoreCase(actionParameter)) {
